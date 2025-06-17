@@ -40,8 +40,8 @@
   - [x] 1.3 Install and configure Tailwind CSS & Shadcn UI.
   - [x] 1.4 Install Framer Motion for animations.
   - [x] 1.5 Set up ESLint, Prettier for code quality.
-  - [ ] 1.6 Initialize Git repository and make initial commit.
-  - [ ] 1.7 Set up Vercel project for frontend deployment.
+  - [x] 1.6 Initialize Git repository and make initial commit.
+  - [x] 1.7 Set up Vercel project for frontend deployment.
   - [ ] 1.8 Create basic project structure (folders for components, lib, hooks, contexts, db).
   - [ ] 1.9 Implement basic layout components (Navbar, Sidebar, Footer) using Shadcn UI.
   - [ ] 1.10 Set up basic routing for main sections (Dashboard, Inventory, POS, Settings, Auth).
