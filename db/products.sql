@@ -1,0 +1,25 @@
+-- Schema for the `products` table
+CREATE TABLE IF NOT EXISTS products (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sku TEXT NOT NULL,
+    category TEXT NOT NULL,
+    brand TEXT NOT NULL,
+    model_name TEXT NOT NULL,
+    cost_price NUMERIC NOT NULL,
+    selling_price NUMERIC NOT NULL,
+    quantity_on_hand INTEGER NOT NULL,
+    supplier_id UUID REFERENCES suppliers(id),
+    status TEXT NOT NULL CHECK (status IN ('active', 'inactive')),
+    description TEXT,
+    tags TEXT[],
+    short_description TEXT,
+    slug TEXT UNIQUE,
+    regular_price NUMERIC,
+    sale_price NUMERIC,
+    stock_status TEXT,
+    featured BOOLEAN DEFAULT false,
+    date_created TIMESTAMP WITH TIME ZONE,
+    date_modified TIMESTAMP WITH TIME ZONE,
+    catalog_visibility TEXT,
+    meta JSONB
+);
