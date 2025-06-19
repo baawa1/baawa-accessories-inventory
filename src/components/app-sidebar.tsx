@@ -35,6 +35,10 @@ const navItems = [
     title: 'Inventory',
     url: '/inventory',
     icon: IconBoxSeam,
+    items: [
+      { title: 'Products', url: '/inventory' },
+      { title: 'Add Product', url: '/inventory/add' },
+    ],
   },
   {
     title: 'POS',

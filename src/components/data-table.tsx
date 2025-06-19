@@ -393,7 +393,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
         <DropdownMenuContent align='end'>
           <DropdownMenuItem
             onClick={() => {
-              /* TODO: handle edit */
+              window.location.href = `/inventory/edit/${row.original.id}`
             }}
           >
             Edit

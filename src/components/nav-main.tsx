@@ -11,6 +11,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '@/components/ui/accordion'
 
 export function NavMain({
   items,
@@ -19,6 +25,7 @@ export function NavMain({
     title: string
     url: string
     icon?: Icon
+    items?: { title: string; url: string }[]
   }[]
 }) {
   return (
@@ -44,24 +51,54 @@ export function NavMain({
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <Link
-                href={item.url}
-                passHref
-                legacyBehavior={false}
-                className='w-full'
-              >
-                <SidebarMenuButton
-                  tooltip={item.title}
-                  className='flex w-full items-center justify-start gap-2'
+          <Accordion type='multiple' className='w-full'>
+            {items.map((item) =>
+              item.items && item.items.length > 0 ? (
+                <AccordionItem
+                  value={item.title}
+                  key={item.title}
+                  className='border-0'
                 >
-                  {item.icon && <item.icon size={18} />}
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          ))}
+                  <AccordionTrigger>
+                    <span className='flex w-full items-center justify-start gap-2'>
+                      {item.icon && <item.icon size={18} />}
+                      <span>{item.title}</span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className='pl-6'>
+                    <SidebarMenu>
+                      {item.items.map((sub) => (
+                        <SidebarMenuItem key={sub.title}>
+                          <Link href={sub.url} className='w-full'>
+                            <SidebarMenuButton className='flex w-full items-center justify-start gap-2'>
+                              <span>{sub.title}</span>
+                            </SidebarMenuButton>
+                          </Link>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </AccordionContent>
+                </AccordionItem>
+              ) : (
+                <SidebarMenuItem key={item.title}>
+                  <Link
+                    href={item.url}
+                    passHref
+                    legacyBehavior={false}
+                    className='w-full'
+                  >
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      className='flex w-full items-center justify-start gap-2'
+                    >
+                      {item.icon && <item.icon size={18} />}
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              )
+            )}
+          </Accordion>
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
