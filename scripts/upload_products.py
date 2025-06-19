@@ -149,5 +149,7 @@ def upload_products(csv_file_path):
                 print(f"Error processing row with SKU {row.get('SKU')}: {e}")
 
 if __name__ == '__main__':
-    upload_products('/Users/baawa/Downloads/wc-product-export-18-6-2025-1750220421093.csv')
+    # Assuming the CSV file is in a 'data' directory at the root of the project.
+    csv_file_path = 'data/wc-product-export-18-6-2025-1750220421093.csv'
+    upload_products(csv_file_path)
 

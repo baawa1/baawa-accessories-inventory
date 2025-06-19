@@ -1,46 +1,137 @@
-import React from 'react'
+'use client'
+
+import React, { useState } from 'react'
 import { DataTable } from '@/components/data-table'
-import { supabase } from '@/lib/supabaseClient'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
-const columns = [
-  { accessorKey: 'sku', header: 'SKU' },
-  { accessorKey: 'model_name', header: 'Name' },
-  { accessorKey: 'category', header: 'Category' },
-  { accessorKey: 'brand', header: 'Brand' },
-  { accessorKey: 'quantity_on_hand', header: 'Stock' },
-  { accessorKey: 'selling_price', header: 'Price' },
-]
+interface Category {
+  id: string
+  name: string
+}
+interface Brand {
+  id: string
+  name: string
+}
+interface Supplier {
+  id: string
+  name: string
+}
+interface Product {
+  id: string
+  sku: string
+  name: string
+  description: string
+  short_description: string
+  slug: string
+  cost_price: number
+  selling_price: number
+  regular_price: number
+  quantity_on_hand: number
+  category_id: string | number
+  brand_id: string | number
+  model_name: string
+  supplier_id: string | number
+  status: string
+  tags: string[]
+  reorder_level: number
+  stock_status: string
+  featured: boolean
+  catalog_visibility: boolean
+  meta: any
+  created_at: string
+  updated_at: string
+  product_images?: { image_url: string; display_order: number }[]
+}
 
-export default async function ProductsListPage() {
-  // Server-side fetching of products from Supabase
-  const { data, error } = await supabase
-    .from('products')
-    .select(
-      'id, sku, model_name, category, brand, quantity_on_hand, selling_price'
-    )
-    .order('model_name', { ascending: true })
-    .limit(20)
+export default function ProductsListPage({
+  products,
+  categories,
+  brands,
+  suppliers,
+  error,
+}: {
+  products: Product[]
+  categories: Category[]
+  brands: Brand[]
+  suppliers: Supplier[]
+  error?: any
+}) {
+  // Helper to get category/brand/supplier name by id (robust string comparison)
+  const getCategoryName = (id: string | number) =>
+    categories?.find((c) => String(c.id) === String(id))?.name || String(id)
+  const getBrandName = (id: string | number) =>
+    brands?.find((b) => String(b.id) === String(id))?.name || String(id)
+  const getSupplierName = (id: string | number) =>
+    suppliers?.find((s) => String(s.id) === String(id))?.name || String(id)
 
-  type Product = {
-    id: string
-    sku: string
-    model_name: string
-    category: string
-    brand: string
-    quantity_on_hand: number
-    selling_price: number
-  }
+  // Adapt product data to match DataTable schema
+  const adaptedData = (products || []).map(
+    (product: Product & { product_images?: any }) => {
+      // Handle product_images as array or single object
+      let imagesArr: { image_url: string; display_order: number }[] = []
+      if (Array.isArray(product.product_images)) {
+        imagesArr = product.product_images
+      } else if (
+        product.product_images &&
+        typeof product.product_images === 'object'
+      ) {
+        imagesArr = [product.product_images]
+      }
+      let main_image_url = ''
+      if (imagesArr.length > 0) {
+        const sorted = [...imagesArr].sort(
+          (a, b) => a.display_order - b.display_order
+        )
+        main_image_url = sorted[0]?.image_url || ''
+      }
+      return {
+        ...product,
+        category_id: product.category_id?.toString() || '',
+        brand_id: product.brand_id?.toString() || '',
+        supplier_id: product.supplier_id?.toString() || '',
+        main_image_url,
+        category_name: getCategoryName(product.category_id),
+        brand_name: getBrandName(product.brand_id),
+        supplier_name: getSupplierName(product.supplier_id),
+      }
+    }
+  )
 
-  // Adapt product data to match DataTable schema for now
-  const adaptedData = (data || []).map((product: Product, idx: number) => ({
-    id: product.id || idx,
-    header: product.model_name || product.sku,
-    type: product.category || '',
-    status: product.quantity_on_hand > 0 ? 'In Stock' : 'Out of Stock',
-    target: product.brand || '',
-    limit: product.selling_price ? product.selling_price.toString() : '',
-    reviewer: 'Assign reviewer', // Placeholder
-  }))
+  const [filters, setFilters] = useState({
+    sku: '',
+    name: '',
+    category_id: 'all',
+    brand_id: 'all',
+  })
+
+  // Filtering logic
+  const filteredData = adaptedData.filter((product) => {
+    const matchesSku =
+      !filters.sku ||
+      product.sku?.toLowerCase().includes(filters.sku.toLowerCase())
+    const matchesName =
+      !filters.name ||
+      product.name?.toLowerCase().includes(filters.name.toLowerCase())
+    const matchesCategory =
+      filters.category_id === 'all' ||
+      product.category_id === filters.category_id
+    const matchesBrand =
+      filters.brand_id === 'all' || product.brand_id === filters.brand_id
+    return matchesSku && matchesName && matchesCategory && matchesBrand
+  })
+
+  // Sort categories and brands alphabetically by name before passing to dropdowns
+  const sortedCategories = [...categories].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+  const sortedBrands = [...brands].sort((a, b) => a.name.localeCompare(b.name))
 
   if (error) {
     return (
@@ -53,8 +144,68 @@ export default async function ProductsListPage() {
   return (
     <div className='p-6'>
       <h1 className='text-2xl font-bold mb-4'>Products</h1>
-      {/* TODO: Refactor DataTable to accept dynamic columns for real product fields */}
-      <DataTable data={adaptedData} />
+      <div className='flex flex-wrap gap-4 mb-4'>
+        <Input
+          placeholder='Filter by SKU'
+          value={filters.sku}
+          onChange={(e) => setFilters((f) => ({ ...f, sku: e.target.value }))}
+          className='w-40'
+        />
+        <Input
+          placeholder='Filter by Name'
+          value={filters.name}
+          onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value }))}
+          className='w-40'
+        />
+        <Select
+          value={filters.category_id}
+          onValueChange={(val) =>
+            setFilters((f) => ({ ...f, category_id: val }))
+          }
+        >
+          <SelectTrigger className='w-40'>
+            <SelectValue placeholder='Filter by Category' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='all'>All Categories</SelectItem>
+            {sortedCategories?.map((cat: any) => (
+              <SelectItem key={cat.id} value={cat.id.toString()}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={filters.brand_id}
+          onValueChange={(val) => setFilters((f) => ({ ...f, brand_id: val }))}
+        >
+          <SelectTrigger className='w-40'>
+            <SelectValue placeholder='Filter by Brand' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='all'>All Brands</SelectItem>
+            {sortedBrands?.map((brand: any) => (
+              <SelectItem key={brand.id} value={brand.id.toString()}>
+                {brand.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <button
+          className='px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300'
+          onClick={() =>
+            setFilters({
+              sku: '',
+              name: '',
+              category_id: 'all',
+              brand_id: 'all',
+            })
+          }
+        >
+          Clear Filters
+        </button>
+      </div>
+      <DataTable data={filteredData} />
     </div>
   )
 }
