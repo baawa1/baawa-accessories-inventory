@@ -276,7 +276,7 @@ export default function ProductsListPage({
           Add Product
         </Button>
       </div>
-      <DataTable data={filteredData} />
+      <DataTable data={filteredData} suppliers={suppliers} />
       {/* Add Product Choice Dialog */}
       <Dialog
         open={uploadChoiceDialogOpen}

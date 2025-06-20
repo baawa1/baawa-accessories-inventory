@@ -33,6 +33,7 @@ import {
   IconLoader,
   IconPlus,
   IconTrendingUp,
+  IconChevronUp,
 } from '@tabler/icons-react'
 import {
   ColumnDef,
@@ -99,6 +100,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { StockAdjustmentDialog } from '@/components/inventory/StockAdjustmentDialog'
 
 // Extend the schema to include category_name and brand_name for display
 export const schema = z.object({
@@ -189,7 +191,13 @@ function DragHandle({
 type ProductRow = z.infer<typeof schema> & { variants?: any[] }
 
 // Move columns definition inside DataTable so it can access expandedRows and handleToggleExpand
-export function DataTable({ data: initialData }: { data: ProductRow[] }) {
+export function DataTable({
+  data: initialData,
+  suppliers = [],
+}: {
+  data: ProductRow[]
+  suppliers?: { id: string; name: string }[]
+}) {
   const [data, setData] = React.useState(() => initialData)
   // Sync local data state with prop changes
   React.useEffect(() => {
@@ -301,14 +309,46 @@ export function DataTable({ data: initialData }: { data: ProductRow[] }) {
     },
     {
       accessorKey: 'sku',
-      header: 'SKU',
-      enableSorting: false,
+      header: ({ column }) => (
+        <div
+          className='flex items-center gap-1 cursor-pointer select-none'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          SKU
+          {column.getIsSorted() === 'asc' ? (
+            <IconChevronUp className='inline size-4' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <IconChevronDown className='inline size-4' />
+          ) : (
+            <span className='opacity-30'>
+              <IconChevronUp className='inline size-4' />
+            </span>
+          )}
+        </div>
+      ),
+      enableSorting: true,
       enableHiding: true,
     },
     {
       accessorKey: 'name',
-      header: 'Name',
-      enableSorting: false,
+      header: ({ column }) => (
+        <div
+          className='flex items-center gap-1 cursor-pointer select-none'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Name
+          {column.getIsSorted() === 'asc' ? (
+            <IconChevronUp className='inline size-4' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <IconChevronDown className='inline size-4' />
+          ) : (
+            <span className='opacity-30'>
+              <IconChevronUp className='inline size-4' />
+            </span>
+          )}
+        </div>
+      ),
+      enableSorting: true,
       enableHiding: true,
     },
     {
@@ -331,22 +371,54 @@ export function DataTable({ data: initialData }: { data: ProductRow[] }) {
     },
     {
       accessorKey: 'cost_price',
-      header: 'Cost Price',
+      header: ({ column }) => (
+        <div
+          className='flex items-center gap-1 cursor-pointer select-none'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Cost Price
+          {column.getIsSorted() === 'asc' ? (
+            <IconChevronUp className='inline size-4' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <IconChevronDown className='inline size-4' />
+          ) : (
+            <span className='opacity-30'>
+              <IconChevronUp className='inline size-4' />
+            </span>
+          )}
+        </div>
+      ),
       cell: ({ row }) =>
         row.original.cost_price !== undefined
           ? `₦${Number(row.original.cost_price).toLocaleString()}`
           : '-',
-      enableSorting: false,
+      enableSorting: true,
       enableHiding: true,
     },
     {
       accessorKey: 'selling_price',
-      header: 'Selling Price',
+      header: ({ column }) => (
+        <div
+          className='flex items-center gap-1 cursor-pointer select-none'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Selling Price
+          {column.getIsSorted() === 'asc' ? (
+            <IconChevronUp className='inline size-4' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <IconChevronDown className='inline size-4' />
+          ) : (
+            <span className='opacity-30'>
+              <IconChevronUp className='inline size-4' />
+            </span>
+          )}
+        </div>
+      ),
       cell: ({ row }) =>
         row.original.selling_price !== undefined
           ? `₦${Number(row.original.selling_price).toLocaleString()}`
           : '-',
-      enableSorting: false,
+      enableSorting: true,
       enableHiding: true,
     },
     {
@@ -459,16 +531,48 @@ export function DataTable({ data: initialData }: { data: ProductRow[] }) {
     },
     {
       accessorKey: 'created_at',
-      header: 'Created At',
-      cell: ({ row }) => new Date(row.original.created_at).toISOString(),
-      enableSorting: false,
+      header: ({ column }) => (
+        <div
+          className='flex items-center gap-1 cursor-pointer select-none'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Created At
+          {column.getIsSorted() === 'asc' ? (
+            <IconChevronUp className='inline size-4' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <IconChevronDown className='inline size-4' />
+          ) : (
+            <span className='opacity-30'>
+              <IconChevronUp className='inline size-4' />
+            </span>
+          )}
+        </div>
+      ),
+      cell: ({ row }) => new Date(row.original.created_at).toLocaleString(),
+      enableSorting: true,
       enableHiding: true,
     },
     {
       accessorKey: 'updated_at',
-      header: 'Updated At',
-      cell: ({ row }) => new Date(row.original.updated_at).toISOString(),
-      enableSorting: false,
+      header: ({ column }) => (
+        <div
+          className='flex items-center gap-1 cursor-pointer select-none'
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Updated At
+          {column.getIsSorted() === 'asc' ? (
+            <IconChevronUp className='inline size-4' />
+          ) : column.getIsSorted() === 'desc' ? (
+            <IconChevronDown className='inline size-4' />
+          ) : (
+            <span className='opacity-30'>
+              <IconChevronUp className='inline size-4' />
+            </span>
+          )}
+        </div>
+      ),
+      cell: ({ row }) => new Date(row.original.updated_at).toLocaleString(),
+      enableSorting: true,
       enableHiding: true,
     },
     {
@@ -477,6 +581,8 @@ export function DataTable({ data: initialData }: { data: ProductRow[] }) {
       cell: ({ row }) => {
         // Dialog state for product details
         const [open, setOpen] = React.useState(false)
+        // Dialog state for stock adjustment
+        const [adjustDialogOpen, setAdjustDialogOpen] = React.useState(false)
         const hasVariants =
           (row.original as ProductRow).variants &&
           (row.original as ProductRow).variants!.length > 0
@@ -523,6 +629,33 @@ export function DataTable({ data: initialData }: { data: ProductRow[] }) {
             >
               <IconLayoutColumns />
             </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              className='text-xs'
+              onClick={(e) => {
+                e.stopPropagation()
+                setAdjustDialogOpen(true)
+              }}
+            >
+              Adjust Stock
+            </Button>
+            <StockAdjustmentDialog
+              open={adjustDialogOpen}
+              onOpenChange={setAdjustDialogOpen}
+              productId={row.original.id}
+              suppliers={suppliers}
+              onSuccess={(newQty) => {
+                // Update the product's quantity in the table immediately
+                setData((prev) =>
+                  prev.map((p) =>
+                    p.id === row.original.id
+                      ? { ...p, quantity_on_hand: newQty }
+                      : p
+                  )
+                )
+              }}
+            />
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogContent className='w-full max-w-full sm:max-w-2xl max-h-[90dvh] p-0 flex flex-col'>
                 <DialogHeader className='px-3 pt-3 sm:px-6 sm:pt-6'>
