@@ -20,6 +20,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { StockReconciliationDialog } from '@/components/inventory/StockReconciliationDialog'
+import { Loader2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 interface Category {
   id: string
@@ -132,6 +135,9 @@ export default function ProductsListPage({
   const [csvUploading, setCSVUploading] = useState(false)
   const [csvError, setCSVError] = useState<string | undefined>(undefined)
   const [uploadChoiceDialogOpen, setUploadChoiceDialogOpen] = useState(false)
+  const [reconciliationDialogOpen, setReconciliationDialogOpen] =
+    useState(false)
+  const [reconciliationLoading, setReconciliationLoading] = useState(false)
 
   const handleCSVFileSelected = async (file: File) => {
     setCSVUploading(true)
@@ -197,6 +203,15 @@ export default function ProductsListPage({
 
   const router = useRouter()
 
+  const handleOpenReconciliation = () => {
+    setReconciliationLoading(true)
+    setReconciliationDialogOpen(true)
+    // Simulate loading delay (e.g., fetching, heavy mapping)
+    setTimeout(() => {
+      setReconciliationLoading(false)
+    }, 600) // adjust as needed
+  }
+
   if (error) {
     return (
       <div className='p-6 text-red-500'>
@@ -206,7 +221,7 @@ export default function ProductsListPage({
   }
 
   return (
-    <div className='p-6'>
+    <div className='p-6 lg:px-8'>
       <h1 className='text-2xl font-bold mb-4'>Products</h1>
       <div className='flex flex-wrap gap-4 mb-4 items-center'>
         <Input
@@ -268,13 +283,17 @@ export default function ProductsListPage({
         >
           Clear Filters
         </button>
-        <Button
-          className='ml-auto'
-          onClick={() => setUploadChoiceDialogOpen(true)}
-          variant='default'
-        >
-          Add Product
-        </Button>
+        <div className='ml-auto flex gap-2'>
+          <Button onClick={handleOpenReconciliation} variant='secondary'>
+            Stock Reconciliation
+          </Button>
+          <Button
+            onClick={() => setUploadChoiceDialogOpen(true)}
+            variant='default'
+          >
+            Add Product
+          </Button>
+        </div>
       </div>
       <DataTable data={filteredData} suppliers={suppliers} />
       {/* Add Product Choice Dialog */}
@@ -323,6 +342,13 @@ export default function ProductsListPage({
         onFileSelected={handleCSVFileSelected}
         uploading={csvUploading}
         error={csvError}
+      />
+      {/* Stock Reconciliation Dialog (new) */}
+      <StockReconciliationDialog
+        open={reconciliationDialogOpen}
+        onOpenChange={setReconciliationDialogOpen}
+        products={adaptedData}
+        loading={reconciliationLoading}
       />
     </div>
   )

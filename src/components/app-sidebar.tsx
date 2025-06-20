@@ -38,6 +38,7 @@ const navItems = [
     items: [
       { title: 'Products', url: '/inventory' },
       { title: 'Add Product', url: '/inventory/add' },
+      { title: 'Adjustments', url: '/inventory/adjustments' },
     ],
   },
   {
