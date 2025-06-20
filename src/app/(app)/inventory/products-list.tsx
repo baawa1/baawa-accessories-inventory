@@ -10,6 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { CSVImportDialog } from '@/components/inventory/CSVImportDialog'
+import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 interface Category {
   id: string
@@ -110,6 +120,50 @@ export default function ProductsListPage({
     category_id: 'all',
     brand_id: 'all',
   })
+  const [csvDialogOpen, setCSVDialogOpen] = useState(false)
+  const [csvUploading, setCSVUploading] = useState(false)
+  const [csvError, setCSVError] = useState<string | undefined>(undefined)
+  const [uploadChoiceDialogOpen, setUploadChoiceDialogOpen] = useState(false)
+
+  const handleCSVFileSelected = async (file: File) => {
+    setCSVUploading(true)
+    setCSVError(undefined)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/products/bulk-upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const contentType = res.headers.get('content-type')
+      if (res.ok && contentType && contentType.includes('text/csv')) {
+        // Download the CSV result
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'bulk-upload-status.csv'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+        setCSVDialogOpen(false)
+      } else {
+        // Try to parse error JSON
+        let data
+        try {
+          data = await res.json()
+        } catch {
+          data = { error: 'Unknown error' }
+        }
+        throw new Error(data.error || 'Bulk upload failed')
+      }
+    } catch (e: any) {
+      setCSVError(e.message || 'Failed to upload CSV')
+    } finally {
+      setCSVUploading(false)
+    }
+  }
 
   // Filtering logic
   const filteredData = adaptedData.filter((product) => {
@@ -133,6 +187,8 @@ export default function ProductsListPage({
   )
   const sortedBrands = [...brands].sort((a, b) => a.name.localeCompare(b.name))
 
+  const router = useRouter()
+
   if (error) {
     return (
       <div className='p-6 text-red-500'>
@@ -144,7 +200,7 @@ export default function ProductsListPage({
   return (
     <div className='p-6'>
       <h1 className='text-2xl font-bold mb-4'>Products</h1>
-      <div className='flex flex-wrap gap-4 mb-4'>
+      <div className='flex flex-wrap gap-4 mb-4 items-center'>
         <Input
           placeholder='Filter by SKU'
           value={filters.sku}
@@ -204,8 +260,62 @@ export default function ProductsListPage({
         >
           Clear Filters
         </button>
+        <Button
+          className='ml-auto'
+          onClick={() => setUploadChoiceDialogOpen(true)}
+          variant='default'
+        >
+          Add Product
+        </Button>
       </div>
       <DataTable data={filteredData} />
+      {/* Add Product Choice Dialog */}
+      <Dialog
+        open={uploadChoiceDialogOpen}
+        onOpenChange={setUploadChoiceDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className='text-center'>Add Product</DialogTitle>
+          </DialogHeader>
+          <div className='flex flex-col gap-4 pt-4'>
+            <Button
+              variant='default'
+              onClick={() => {
+                setUploadChoiceDialogOpen(false)
+                router.push('/inventory/add')
+              }}
+            >
+              Single Product Upload
+            </Button>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setUploadChoiceDialogOpen(false)
+                setCSVDialogOpen(true)
+              }}
+            >
+              Bulk Upload via CSV
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button
+              variant='ghost'
+              onClick={() => setUploadChoiceDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* CSV Import Dialog */}
+      <CSVImportDialog
+        open={csvDialogOpen}
+        onOpenChange={setCSVDialogOpen}
+        onFileSelected={handleCSVFileSelected}
+        uploading={csvUploading}
+        error={csvError}
+      />
     </div>
   )
 }

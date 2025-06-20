@@ -1,0 +1,7 @@
+# Product Import CSV Template for BaaWA Inventory
+# Fill in your product data below. Do not remove the header row.
+# For products with multiple variants or images, duplicate the main product fields and change only the variant/image columns as needed.
+sku,category,brand,name,model_name,cost_price,selling_price,quantity_on_hand,supplier_name,status,description,tags,variant_color,variant_size,variant_sku,variant_price,variant_quantity,image_url,image_alt_text,image_display_order
+SKU123,Electronics,Apple,iPhone 15,iPhone 15,800,1200,10,Apple Ghana,active,"Latest iPhone model","smartphone,ios,flagship",Black,128GB,SKU123-BLK-128,1200,5,https://example.com/iphone15-black.jpg,"iPhone 15 Black",1
+SKU123,Electronics,Apple,iPhone 15,iPhone 15,800,1200,10,Apple Ghana,active,"Latest iPhone model","smartphone,ios,flagship",White,256GB,SKU123-WHT-256,1300,5,https://example.com/iphone15-white.jpg,"iPhone 15 White",2
+SKU124,Electronics,Samsung,Galaxy S24,Galaxy S24,700,1100,15,Samsung Ghana,active,"Flagship Samsung phone","smartphone,android,flagship",Gray,128GB,SKU124-GRY-128,1100,10,https://example.com/galaxys24-gray.jpg,"Galaxy S24 Gray",1

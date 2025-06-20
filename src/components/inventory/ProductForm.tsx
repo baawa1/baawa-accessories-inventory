@@ -25,19 +25,22 @@ import {
 import { saveProduct } from '../../lib/saveProduct'
 import { uploadProductImages } from '../../lib/uploadProductImage'
 import { toast } from 'sonner'
-import { X, GripVertical } from 'lucide-react'
+import { X, GripVertical, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { SelectField, NumberField } from './SelectField'
 
 // Product form schema (basic, can be extended for variants/images)
 const productSchema = z.object({
   sku: z
     .string()
     .min(1, 'SKU is required')
-    .regex(/^\S+$/, 'SKU must not contain spaces'),
+    .regex(/^[^\s]+$/, 'SKU must not contain spaces'),
   category: z.string().min(1, 'Category is required'),
   brand_id: z.string().min(1, 'Brand is required'),
   model_name: z.string().min(1, 'Model name is required'),
-  cost_price: z.coerce.number().nonnegative(),
-  selling_price: z.coerce.number().nonnegative(),
+  cost_price: z.coerce.number().gt(0, 'Cost price must be greater than 0'),
+  selling_price: z.coerce
+    .number()
+    .gt(0, 'Selling price must be greater than 0'),
   quantity_on_hand: z.coerce.number().int().nonnegative(),
   supplier_id: z.string().optional(),
   status: z.enum(['active', 'archived', 'draft']),
@@ -115,6 +118,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [imagePreviews, setImagePreviews] = React.useState<string[]>([])
   const [imageAlts, setImageAlts] = React.useState<string[]>([])
   const [uploadProgress, setUploadProgress] = React.useState<number[]>([])
+  const [skuStatus, setSkuStatus] = React.useState<
+    'idle' | 'loading' | 'unique' | 'not-unique'
+  >('idle')
   const dragItem = useRef<number | null>(null)
   const dragOverItem = useRef<number | null>(null)
 
@@ -346,312 +352,339 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <FormField
-            name='sku'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>SKU</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='category'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <FormControl>
-                  <Select
-                    value={field.value ? String(field.value) : undefined}
-                    onValueChange={field.onChange}
-                    disabled={loading || isLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Select category' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={String(cat.id)}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='brand_id'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Brand</FormLabel>
-                <FormControl>
-                  <Select
-                    value={field.value ? String(field.value) : undefined}
-                    onValueChange={field.onChange}
-                    disabled={loading || isLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Select brand' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedBrands.map((brand) => (
-                        <SelectItem key={brand.id} value={String(brand.id)}>
-                          {brand.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='model_name'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Model Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='cost_price'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cost Price</FormLabel>
-                <FormControl>
-                  <Input type='number' step='0.01' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='selling_price'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Selling Price</FormLabel>
-                <FormControl>
-                  <Input type='number' step='0.01' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='quantity_on_hand'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantity on Hand</FormLabel>
-                <FormControl>
-                  <Input type='number' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='supplier_id'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Supplier</FormLabel>
-                <FormControl>
-                  <Select
-                    value={field.value ? String(field.value) : undefined}
-                    onValueChange={field.onChange}
-                    disabled={loading || isLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Select supplier' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedSuppliers.map((sup) => (
-                        <SelectItem key={sup.id} value={String(sup.id)}>
-                          {sup.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='status'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <FormControl>
-                  <Select
-                    value={field.value || undefined}
-                    onValueChange={field.onChange}
-                    disabled={loading || isLoading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Select status' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='active'>Active</SelectItem>
-                      <SelectItem value='archived'>Archived</SelectItem>
-                      <SelectItem value='draft'>Draft</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            name='name'
-            control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          name='description'
-          control={form.control}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea {...field} rows={3} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          name='tags'
-          control={form.control}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tags</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder='Comma separated' />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div>
-          <FormLabel>Product Images</FormLabel>
-          <div
-            className='border-2 border-dashed rounded p-4 mb-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400'
-            tabIndex={0}
-            aria-label='Drag and drop product images here or click to select'
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() =>
-              document.getElementById('product-image-input')?.click()
-            }
-            role='button'
-          >
-            <p className='text-gray-500 text-sm'>
-              Drag and drop images here, or click to select
-            </p>
-            <Input
-              id='product-image-input'
-              type='file'
-              accept='image/*'
-              multiple
-              onChange={handleImageChange}
-              className='hidden'
-              aria-label='Select product images'
+      <div className='relative'>
+        {(isLoading || loading) && (
+          <div className='absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-lg'>
+            <svg
+              className='animate-spin h-8 w-8 text-blue-500'
+              xmlns='http://www.w3.org/2000/svg'
+              fill='none'
+              viewBox='0 0 24 24'
+              aria-label='Loading spinner'
+            >
+              <circle
+                className='opacity-25'
+                cx='12'
+                cy='12'
+                r='10'
+                stroke='currentColor'
+                strokeWidth='4'
+              ></circle>
+              <path
+                className='opacity-75'
+                fill='currentColor'
+                d='M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z'
+              ></path>
+            </svg>
+          </div>
+        )}
+        <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <FormField
+              name='sku'
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SKU</FormLabel>
+                  <FormControl>
+                    <div className='relative'>
+                      <Input
+                        {...field}
+                        onBlur={async () => {
+                          field.onBlur()
+                          const value = field.value
+                          if (value) {
+                            setSkuStatus('loading')
+                            const isUnique = await checkSkuUnique(
+                              value,
+                              productId
+                            )
+                            if (!isUnique) {
+                              form.setError('sku', {
+                                type: 'manual',
+                                message:
+                                  'SKU already exists. Please use a unique SKU.',
+                              })
+                              setSkuStatus('not-unique')
+                            } else {
+                              form.clearErrors('sku')
+                              setSkuStatus('unique')
+                            }
+                          } else {
+                            setSkuStatus('idle')
+                          }
+                        }}
+                        onChange={(e) => {
+                          field.onChange(e)
+                          setSkuStatus('idle')
+                        }}
+                      />
+                      {skuStatus === 'loading' && (
+                        <Loader2 className='absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-500 animate-spin' />
+                      )}
+                      {skuStatus === 'not-unique' && (
+                        <XCircle className='absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 text-red-500' />
+                      )}
+                      {skuStatus === 'unique' && (
+                        <CheckCircle className='absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500' />
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <SelectField
+              name='category'
+              label='Category'
+              control={form.control}
+              options={sortedCategories}
+              placeholder='Select category'
+              disabled={loading || isLoading}
+            />
+            <SelectField
+              name='brand_id'
+              label='Brand'
+              control={form.control}
+              options={sortedBrands}
+              placeholder='Select brand'
+              disabled={loading || isLoading}
+            />
+            <NumberField
+              name='cost_price'
+              label='Cost Price'
+              control={form.control}
+              step='0.01'
+              min={0.01}
+              disabled={loading || isLoading}
+            />
+            <NumberField
+              name='selling_price'
+              label='Selling Price'
+              control={form.control}
+              step='0.01'
+              min={0.01}
+              disabled={loading || isLoading}
+            />
+            <NumberField
+              name='quantity_on_hand'
+              label='Quantity on Hand'
+              control={form.control}
+              step='1'
+              min={0}
+              disabled={loading || isLoading}
+            />
+            <SelectField
+              name='supplier_id'
+              label='Supplier'
+              control={form.control}
+              options={sortedSuppliers}
+              placeholder='Select supplier'
+              disabled={loading || isLoading}
+            />
+            <FormField
+              name='status'
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value || undefined}
+                      onValueChange={field.onChange}
+                      disabled={loading || isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder='Select status' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='active'>Active</SelectItem>
+                        <SelectItem value='archived'>Archived</SelectItem>
+                        <SelectItem value='draft'>Draft</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              name='name'
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </div>
-          {/* Unified image list (existing + new, reorderable) */}
-          <div className='flex flex-wrap gap-2 mt-2'>
-            {allImages.map((img, idx) => (
-              <div
-                key={img.id || img.url || idx}
-                className='relative group flex flex-col items-center cursor-move'
-                draggable
-                onDragStart={() => handleDragStart(idx)}
-                onDragEnter={() => handleDragEnter(idx)}
-                onDragEnd={handleDragEnd}
-                tabIndex={0}
-                aria-label={`Image ${idx + 1}`}
-              >
-                <GripVertical
-                  className='absolute left-1 top-1 text-gray-400 cursor-grab'
-                  size={16}
-                  aria-hidden='true'
-                />
-                <img
-                  src={img.preview || img.url}
-                  alt={img.alt || `Image ${idx + 1}`}
-                  className='max-h-32 rounded border mb-1'
-                />
-                <button
-                  type='button'
-                  onClick={() => handleRemoveImage(idx)}
-                  className='absolute top-1 right-1 bg-white/80 rounded-full p-1 text-xs border border-gray-300 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100'
-                  aria-label='Remove image'
+          <FormField
+            name='description'
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                  <Textarea {...field} rows={3} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name='tags'
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tags</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder='Comma separated' />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div>
+            <FormLabel>Product Images</FormLabel>
+            <div
+              className='border-2 border-dashed rounded p-4 mb-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400'
+              tabIndex={0}
+              aria-label='Drag and drop product images here or click to select'
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() =>
+                document.getElementById('product-image-input')?.click()
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  document.getElementById('product-image-input')?.click()
+                }
+              }}
+              role='button'
+            >
+              <p className='text-gray-500 text-sm'>
+                Drag and drop images here, or click to select
+              </p>
+              <Input
+                id='product-image-input'
+                type='file'
+                accept='image/*'
+                multiple
+                onChange={handleImageChange}
+                className='hidden'
+                aria-label='Select product images'
+              />
+            </div>
+            {/* Unified image list (existing + new, reorderable) */}
+            <div className='flex flex-wrap gap-2 mt-2'>
+              {allImages.map((img, idx) => (
+                <div
+                  key={img.id || img.url || idx}
+                  className='relative group flex flex-col items-center cursor-move focus-within:ring-2 focus-within:ring-blue-400'
+                  draggable
+                  onDragStart={() => handleDragStart(idx)}
+                  onDragEnter={() => handleDragEnter(idx)}
+                  onDragEnd={handleDragEnd}
+                  tabIndex={0}
+                  aria-label={`Image ${idx + 1}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Delete' || e.key === 'Backspace') {
+                      handleRemoveImage(idx)
+                    } else if (e.key === 'ArrowLeft' && idx > 0) {
+                      // Move image left
+                      const reordered = [...allImages]
+                      reordered.splice(idx - 1, 0, reordered.splice(idx, 1)[0])
+                      setAllImages(reordered)
+                    } else if (
+                      e.key === 'ArrowRight' &&
+                      idx < allImages.length - 1
+                    ) {
+                      // Move image right
+                      const reordered = [...allImages]
+                      reordered.splice(idx + 1, 0, reordered.splice(idx, 1)[0])
+                      setAllImages(reordered)
+                    }
+                  }}
+                  role='group'
                 >
-                  <X size={16} />
-                </button>
-                <input
-                  type='text'
-                  value={img.alt || ''}
-                  onChange={(e) => handleAltChange(idx, e.target.value)}
-                  placeholder='Alt text'
-                  className='mt-1 w-full text-xs border rounded px-1 py-0.5'
-                  aria-label={`Alt text for image ${idx + 1}`}
-                />
-                {uploadProgress[idx] > 0 && uploadProgress[idx] < 100 && (
-                  <div className='w-full bg-gray-200 rounded h-1 mt-1'>
-                    <div
-                      className='bg-blue-500 h-1 rounded'
-                      style={{ width: `${uploadProgress[idx]}%` }}
-                      aria-valuenow={uploadProgress[idx]}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+                  <GripVertical
+                    className='absolute left-1 top-1 text-gray-400 cursor-grab'
+                    size={16}
+                    aria-hidden='true'
+                    tabIndex={-1}
+                  />
+                  <img
+                    src={img.preview || img.url}
+                    alt={img.alt || `Image ${idx + 1}`}
+                    className='max-h-32 rounded border mb-1'
+                  />
+                  <button
+                    type='button'
+                    onClick={() => handleRemoveImage(idx)}
+                    className='absolute top-1 right-1 bg-white/80 rounded-full p-1 text-xs border border-gray-300 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-400'
+                    aria-label='Remove image'
+                    tabIndex={0}
+                  >
+                    <X size={16} />
+                  </button>
+                  <input
+                    type='text'
+                    value={img.alt || ''}
+                    onChange={(e) => handleAltChange(idx, e.target.value)}
+                    placeholder='Alt text'
+                    className='mt-1 w-full text-xs border rounded px-1 py-0.5'
+                    aria-label={`Alt text for image ${idx + 1}`}
+                  />
+                  {uploadProgress[idx] > 0 && uploadProgress[idx] < 100 && (
+                    <div className='w-full bg-gray-200 rounded h-1 mt-1'>
+                      <div
+                        className='bg-blue-500 h-1 rounded'
+                        style={{ width: `${uploadProgress[idx]}%` }}
+                        aria-valuenow={uploadProgress[idx]}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        {serverError && (
-          <div className='text-red-500 text-sm'>{serverError}</div>
-        )}
-        <div className='flex justify-end'>
-          <Button type='submit' disabled={isLoading || loading}>
-            {isLoading || loading ? 'Saving...' : 'Save Product'}
-          </Button>
-        </div>
-      </form>
+          {serverError && (
+            <div className='text-red-500 text-sm'>{serverError}</div>
+          )}
+          <div className='flex justify-end'>
+            <Button type='submit' disabled={isLoading || loading}>
+              {isLoading || loading ? 'Saving...' : 'Save Product'}
+            </Button>
+          </div>
+        </form>
+      </div>
     </Form>
   )
+}
+
+// --- SKU uniqueness check (async) ---
+async function checkSkuUnique(
+  sku: string,
+  productId?: string
+): Promise<boolean> {
+  if (!sku) return true
+  try {
+    const params = new URLSearchParams({ sku })
+    if (productId) params.append('productId', productId)
+    const res = await fetch(`/api/products/check-sku?${params.toString()}`)
+    if (!res.ok) return true // fallback: allow if error
+    const data = await res.json()
+    // Expecting: { unique: boolean }
+    return !!data.unique
+  } catch (e) {
+    // On error, allow (fail open)
+    return true
+  }
 }
