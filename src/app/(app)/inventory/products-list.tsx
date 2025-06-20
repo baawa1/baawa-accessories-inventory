@@ -58,6 +58,14 @@ interface Product {
   created_at: string
   updated_at: string
   product_images?: { image_url: string; display_order: number }[]
+  variants?: {
+    id: number
+    sku_variant: string
+    color: string
+    size: string
+    price_variant: number
+    quantity_variant: number
+  }[]
 }
 
 export default function ProductsListPage({

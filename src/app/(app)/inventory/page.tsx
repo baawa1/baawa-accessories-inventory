@@ -4,7 +4,7 @@ import supabase from '../../../lib/supabaseClient'
 
 const InventoryPage = async () => {
   // Fetch products with their main image (lowest display_order)
-  const { data, error } = await supabase
+  const { data: products, error } = await supabase
     .from('products')
     .select(
       `
@@ -13,6 +13,25 @@ const InventoryPage = async () => {
     `
     )
     .order('name', { ascending: true })
+
+  // Fetch all product variants
+  const { data: variants } = await supabase.from('product_variants').select('*')
+
+  // Group variants by product_id
+  const variantsByProductId: Record<string, any[]> = {}
+  if (variants) {
+    for (const variant of variants) {
+      const pid = variant.product_id
+      if (!variantsByProductId[pid]) variantsByProductId[pid] = []
+      variantsByProductId[pid].push(variant)
+    }
+  }
+
+  // Attach variants to each product
+  const productsWithVariants = (products || []).map((product) => ({
+    ...product,
+    variants: variantsByProductId[product.id] || [],
+  }))
 
   // Fetch all categories, brands, and suppliers for name mapping
   const [{ data: categories }, { data: brands }, { data: suppliers }] =
@@ -24,7 +43,7 @@ const InventoryPage = async () => {
 
   return (
     <ProductsListPage
-      products={data || []}
+      products={productsWithVariants}
       categories={categories || []}
       brands={brands || []}
       suppliers={suppliers || []}

@@ -5,10 +5,17 @@ export async function saveProduct(
   values: ProductFormValues & {
     images?: { id?: string; url: string; alt?: string }[]
     removedImageIds?: string[]
+    variants?: {
+      id?: string | number
+      color?: string
+      size?: string
+      sku_variant: string
+      price_variant?: number
+      quantity_variant?: number
+    }[]
   },
   id?: string
 ) {
-  console.log('saveProduct called with:', { values, id })
   const now = new Date().toISOString()
   // Map form values to DB columns (adjust as needed for your schema)
   const data = {
@@ -58,7 +65,6 @@ export async function saveProduct(
       const removedIds = Array.from(
         new Set(values.removedImageIds.map((id) => Number(id)))
       )
-      console.log('Attempting to delete images:', removedIds)
       // Fetch URLs for images to delete from storage
       const { data: toDelete, error: fetchError } = await supabase
         .from('product_images')
@@ -85,8 +91,6 @@ export async function saveProduct(
               'File:',
               filePath
             )
-          } else {
-            console.log('Removed from storage:', filePath)
           }
         } else {
           console.warn('Could not extract file path from url:', url)
@@ -101,8 +105,6 @@ export async function saveProduct(
       if (delError) {
         console.error('Error deleting from DB:', delError)
         throw delError
-      } else {
-        console.log('Deleted from DB:', deletedRows)
       }
     }
     // Remove duplicate URLs (keep first occurrence)
@@ -138,12 +140,6 @@ export async function saveProduct(
       (img) => img.id && !removedIds.includes(String(img.id))
     )
     for (const [idx, img] of imagesToUpdate.entries()) {
-      console.log('Updating image', {
-        id: img.id,
-        alt: img.alt,
-        display_order: idx,
-        type: typeof img.id,
-      })
       const { data: updatedRows, error: updateError } = await supabase
         .from('product_images')
         .update({
@@ -155,9 +151,80 @@ export async function saveProduct(
       if (updateError) {
         console.error('Error updating image:', updateError)
         throw updateError
-      } else {
-        console.log('Updated image rows:', updatedRows)
       }
+    }
+  }
+
+  // --- Product Variants CRUD ---
+  if (values.variants && productId) {
+    // Helper to map a variant to DB shape
+    const mapVariantToDb = (variant: any) => ({
+      product_id: productId,
+      sku_variant: variant.sku_variant,
+      color: variant.color || null,
+      size: variant.size || null,
+      price_variant:
+        typeof variant.price_variant === 'number'
+          ? variant.price_variant
+          : null,
+      quantity_variant:
+        typeof variant.quantity_variant === 'number'
+          ? variant.quantity_variant
+          : null,
+    })
+    // Single pass: split into existing and new
+    const existingVariantsToUpsert: any[] = []
+    const newVariantsToInsert: any[] = []
+    for (const variant of values.variants) {
+      if (typeof variant.id === 'number' && !isNaN(variant.id)) {
+        existingVariantsToUpsert.push({
+          ...mapVariantToDb(variant),
+          id: variant.id,
+        })
+      } else {
+        newVariantsToInsert.push(mapVariantToDb(variant))
+      }
+    }
+
+    // Upsert existing variants (with id)
+    let upsertedIds: number[] = []
+    if (existingVariantsToUpsert.length > 0) {
+      const { data: upserted, error: upsertError } = await supabase
+        .from('product_variants')
+        .upsert(existingVariantsToUpsert)
+        .select()
+      if (upsertError) throw upsertError
+      upsertedIds = (upserted || []).map((v: any) => v.id).filter(Boolean)
+    }
+    // Insert new variants (without id)
+    let insertedIds: number[] = []
+    if (newVariantsToInsert.length > 0) {
+      const { data: inserted, error: insertError } = await supabase
+        .from('product_variants')
+        .insert(newVariantsToInsert)
+        .select()
+      if (insertError) throw insertError
+      insertedIds = (inserted || []).map((v: any) => v.id).filter(Boolean)
+    }
+
+    // Delete variants in DB that are not in the submitted list
+    const { data: existingVariantsFromDb, error: fetchVarError } =
+      await supabase
+        .from('product_variants')
+        .select('id')
+        .eq('product_id', productId)
+    if (fetchVarError) throw fetchVarError
+    // Combine ids from upserted and inserted variants
+    const submittedIds = [...upsertedIds, ...insertedIds]
+    const toDelete = (existingVariantsFromDb || [])
+      .map((v: { id: number }) => v.id)
+      .filter((id) => !submittedIds.includes(id))
+    if (toDelete.length > 0) {
+      const { error: delVarError } = await supabase
+        .from('product_variants')
+        .delete()
+        .in('id', toDelete)
+      if (delVarError) throw delVarError
     }
   }
 
@@ -165,3 +232,19 @@ export async function saveProduct(
     ? { success: true, updated: true }
     : { success: true, product: createdProduct }
 }
+
+// Fetch products and their variants, then attach variants to each product
+// This should be done in your data loading logic (e.g., getServerSideProps, getStaticProps, or API route)
+// Example:
+//
+// const { data: products } = await supabase.from('products').select('*');
+// const { data: variants } = await supabase.from('product_variants').select('*');
+// const variantsByProductId = variants.reduce((acc, variant) => {
+//   (acc[variant.product_id] = acc[variant.product_id] || []).push(variant);
+//   return acc;
+// }, {});
+// const productsWithVariants = products.map(product => ({
+//   ...product,
+//   variants: variantsByProductId[product.id] || [],
+// }));
+// Pass productsWithVariants to your ProductsListPage as the products prop.

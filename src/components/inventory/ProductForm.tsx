@@ -66,6 +66,16 @@ interface ProductFormProps {
   existingImages?: ProductImage[]
 }
 
+// --- Product Variant Types ---
+interface ProductVariant {
+  id?: string
+  color?: string
+  size?: string
+  sku_variant: string
+  price_variant?: number
+  quantity_variant?: number
+}
+
 export const ProductForm: React.FC<ProductFormProps> = ({
   initialValues = {},
   categories = [],
@@ -265,6 +275,56 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setUploadProgress((prev) => [...prev, ...validFiles.map(() => 0)])
   }
 
+  // --- Product Variants State ---
+  const [variants, setVariants] = React.useState<ProductVariant[]>(
+    (initialValues as any).variants || []
+  )
+  const [editingVariant, setEditingVariant] =
+    React.useState<ProductVariant | null>(null)
+  const [variantDialogOpen, setVariantDialogOpen] = React.useState(false)
+
+  // --- Variant Handlers ---
+  function handleAddVariant() {
+    setEditingVariant({
+      sku_variant: '',
+      color: '',
+      size: '',
+      price_variant: undefined,
+      quantity_variant: undefined,
+    })
+    setVariantDialogOpen(true)
+  }
+  function handleEditVariant(idx: number) {
+    setEditingVariant({ ...variants[idx] })
+    setVariantDialogOpen(true)
+  }
+  function handleSaveVariant(variant: ProductVariant) {
+    setVariants((prev) => {
+      if (editingVariant && editingVariant.id) {
+        // Update existing
+        return prev.map((v) =>
+          v.id === editingVariant.id ? { ...variant, id: editingVariant.id } : v
+        )
+      } else if (
+        editingVariant &&
+        prev.some((v) => v.sku_variant === editingVariant.sku_variant)
+      ) {
+        // Update by sku_variant if no id
+        return prev.map((v) =>
+          v.sku_variant === editingVariant.sku_variant ? variant : v
+        )
+      } else {
+        // Add new
+        return [...prev, variant]
+      }
+    })
+    setEditingVariant(null)
+    setVariantDialogOpen(false)
+  }
+  function handleRemoveVariant(idx: number) {
+    setVariants((prev) => prev.filter((_, i) => i !== idx))
+  }
+
   const handleSubmit = async (values: ProductFormValues) => {
     console.log('Form handleSubmit called with:', values)
     setServerError(null)
@@ -314,6 +374,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           ...values,
           images: imagesForSave,
           removedImageIds,
+          variants, // <-- ensure variants are included in the payload
         } as any, // type cast for extended prop
         productId
       )
@@ -654,6 +715,160 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </div>
               ))}
             </div>
+          </div>
+          {/* --- Product Variants Section --- */}
+          <div>
+            <div className='flex items-center justify-between mb-2'>
+              <FormLabel>Product Variants</FormLabel>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                onClick={handleAddVariant}
+              >
+                Add Variant
+              </Button>
+            </div>
+            {variants.length === 0 ? (
+              <div className='text-gray-500 text-sm mb-2'>
+                No variants added.
+              </div>
+            ) : (
+              <table className='w-full text-sm border rounded mb-2'>
+                <thead>
+                  <tr className='bg-gray-50'>
+                    <th className='p-2'>SKU</th>
+                    <th className='p-2'>Color</th>
+                    <th className='p-2'>Size</th>
+                    <th className='p-2'>Price</th>
+                    <th className='p-2'>Quantity</th>
+                    <th className='p-2'></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {variants.map((variant, idx) => (
+                    <tr
+                      key={variant.id || variant.sku_variant || idx}
+                      className='border-t'
+                    >
+                      <td className='p-2'>{variant.sku_variant}</td>
+                      <td className='p-2'>{variant.color}</td>
+                      <td className='p-2'>{variant.size}</td>
+                      <td className='p-2'>{variant.price_variant ?? ''}</td>
+                      <td className='p-2'>{variant.quantity_variant ?? ''}</td>
+                      <td className='p-2 flex gap-2'>
+                        <Button
+                          type='button'
+                          size='sm'
+                          variant='ghost'
+                          onClick={() => handleEditVariant(idx)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type='button'
+                          size='sm'
+                          variant='destructive'
+                          onClick={() => handleRemoveVariant(idx)}
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {/* Variant Dialog (simple inline for now) */}
+            {variantDialogOpen && (
+              <div className='border rounded p-4 bg-gray-50 mb-2'>
+                <div className='grid grid-cols-1 md:grid-cols-5 gap-2'>
+                  <Input
+                    placeholder='SKU Variant'
+                    value={editingVariant?.sku_variant || ''}
+                    onChange={(e) =>
+                      setEditingVariant((v) =>
+                        v ? { ...v, sku_variant: e.target.value } : v
+                      )
+                    }
+                  />
+                  <Input
+                    placeholder='Color'
+                    value={editingVariant?.color || ''}
+                    onChange={(e) =>
+                      setEditingVariant((v) =>
+                        v ? { ...v, color: e.target.value } : v
+                      )
+                    }
+                  />
+                  <Input
+                    placeholder='Size'
+                    value={editingVariant?.size || ''}
+                    onChange={(e) =>
+                      setEditingVariant((v) =>
+                        v ? { ...v, size: e.target.value } : v
+                      )
+                    }
+                  />
+                  <Input
+                    placeholder='Price'
+                    type='number'
+                    value={editingVariant?.price_variant ?? ''}
+                    onChange={(e) =>
+                      setEditingVariant((v) =>
+                        v
+                          ? {
+                              ...v,
+                              price_variant: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            }
+                          : v
+                      )
+                    }
+                  />
+                  <Input
+                    placeholder='Quantity'
+                    type='number'
+                    value={editingVariant?.quantity_variant ?? ''}
+                    onChange={(e) =>
+                      setEditingVariant((v) =>
+                        v
+                          ? {
+                              ...v,
+                              quantity_variant: e.target.value
+                                ? Number(e.target.value)
+                                : undefined,
+                            }
+                          : v
+                      )
+                    }
+                  />
+                </div>
+                <div className='flex gap-2 mt-2'>
+                  <Button
+                    type='button'
+                    size='sm'
+                    onClick={() =>
+                      editingVariant && handleSaveVariant(editingVariant)
+                    }
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    type='button'
+                    size='sm'
+                    variant='ghost'
+                    onClick={() => {
+                      setEditingVariant(null)
+                      setVariantDialogOpen(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           {serverError && (
             <div className='text-red-500 text-sm'>{serverError}</div>
