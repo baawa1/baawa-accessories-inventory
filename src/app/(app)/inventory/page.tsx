@@ -1,8 +1,10 @@
 import React from 'react'
 import ProductsListPage from './products-list'
-import supabase from '../../../lib/supabaseClient'
+import { createClient } from '@/lib/supabase/server'
 
 const InventoryPage = async () => {
+  const supabase = await createClient()
+  
   // Fetch products with their main image (lowest display_order)
   const { data: products, error } = await supabase
     .from('products')

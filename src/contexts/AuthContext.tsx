@@ -41,40 +41,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    const fetchUserRole = async (userId: string) => {
-      const { data: userRoleData } = await supabase
-        .from('user_roles')
-        .select('role_id')
-        .eq('user_id', userId)
-        .single()
+    console.log('Initializing AuthContext...')
 
-      if (userRoleData?.role_id) {
-        const { data: roleData } = await supabase
-          .from('roles')
-          .select('name')
-          .eq('id', userRoleData.role_id)
-          .single()
-        return roleData?.name ?? 'Pending'
-      }
-      return 'Pending'
-    }
+    const handleAuthStateChange = async (event: string, session: any) => {
+      console.log('Auth state changed:', event, session?.user?.id)
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          setUser({ id: session.user.id, email: session.user.email ?? '' })
-          const role = await fetchUserRole(session.user.id)
-          setRole(role)
-        } else {
-          setUser(null)
-          setRole(null)
+      if (session?.user) {
+        const authUser = {
+          id: session.user.id,
+          email: session.user.email || '',
         }
+
+        // Get role from user metadata (instant, no DB query needed)
+        let userRole =
+          session.user.user_metadata?.role ||
+          session.user.raw_user_meta_data?.role
+
+        console.log('User role from metadata:', userRole)
+
+        // Fallback: if no role in metadata, fetch from database (one time only)
+        if (!userRole && event !== 'TOKEN_REFRESHED') {
+          console.log(
+            'No role in metadata, fetching from database as fallback...'
+          )
+          setLoading(true)
+          try {
+            const { data: userRoleData } = await supabase
+              .from('user_roles')
+              .select(
+                `
+                role_id,
+                roles!inner(name)
+              `
+              )
+              .eq('user_id', session.user.id)
+              .single()
+
+            userRole = userRoleData?.roles?.name || 'Pending'
+            console.log('Fetched role from database:', userRole)
+
+            // Refresh the metadata for next time
+            await supabase.rpc('refresh_user_role_metadata', {
+              user_id_param: session.user.id,
+            })
+          } catch (error) {
+            console.error('Error fetching role fallback:', error)
+            userRole = 'Pending'
+          }
+        }
+
+        setUser(authUser)
+        setRole(userRole || 'Pending')
+        setLoading(false)
+      } else {
+        console.log('No session, clearing user state')
+        setUser(null)
+        setRole(null)
         setLoading(false)
       }
-    )
+    }
+
+    // Listen to auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(handleAuthStateChange)
+
+    // Check initial session
+    const checkInitialSession = async () => {
+      try {
+        console.log('Checking for initial session...')
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error('Error getting session:', error)
+          setLoading(false)
+          return
+        }
+
+        console.log('Initial session check:', { session: !!session, error })
+        handleAuthStateChange('INITIAL_SESSION', session)
+      } catch (error) {
+        console.error('Error checking initial session:', error)
+        setLoading(false)
+      }
+    }
+
+    checkInitialSession()
 
     return () => {
-      listener.subscription.unsubscribe()
+      console.log('Cleaning up AuthContext listener...')
+      subscription.unsubscribe()
     }
   }, [supabase])
 

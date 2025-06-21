@@ -1,21 +1,20 @@
 import React from 'react'
 import { ProductForm } from '@/components/inventory/ProductForm'
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 // Fetch categories, suppliers, and brands for dropdowns
 async function fetchCategories() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createClient()
   const { data } = await supabase.from('categories').select('id, name')
   return data || []
 }
 async function fetchSuppliers() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createClient()
   const { data } = await supabase.from('suppliers').select('id, name')
   return data || []
 }
 async function fetchBrands() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createClient()
   const { data } = await supabase.from('brands').select('id, name')
   return data || []
 }

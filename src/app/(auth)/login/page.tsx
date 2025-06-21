@@ -25,30 +25,46 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('User:', user, 'Role:', role, 'Auth Loading:', authLoading)
     if (user && !authLoading) {
       if (role === 'Pending') {
+        console.log('Redirecting to /waiting')
         router.replace('/waiting')
-      } else {
+      } else if (role && role !== 'Pending') {
+        console.log('Redirecting to /dashboard')
         router.replace('/dashboard')
       }
+      // If role is null, wait for it to load
     }
   }, [user, role, authLoading, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase) return
+    if (!supabase) {
+      console.error('Supabase client is not initialized')
+      return
+    }
 
     setLoading(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
 
-    setLoading(false)
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        console.error('Login error:', error.message)
+        setError(error.message)
+      } else {
+        console.log('Login successful')
+      }
+    } catch (err) {
+      console.error('Unexpected error during login:', err)
+      setError('An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
