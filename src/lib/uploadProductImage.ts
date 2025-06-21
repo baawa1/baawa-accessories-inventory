@@ -1,10 +1,11 @@
 // Utility for uploading images to Supabase Storage
-import supabase from '@/lib/supabaseClient'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-console.log('Supabase ANON KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-
-export async function uploadProductImage(file: File, productId?: string) {
+export async function uploadProductImage(
+  supabase: SupabaseClient,
+  file: File,
+  productId?: string
+) {
   const fileExt = file.name.split('.').pop()
   const fileName = `${productId || 'temp'}-${Date.now()}.${fileExt}`
   const filePath = `products/${fileName}`
@@ -26,14 +27,18 @@ export async function uploadProductImage(file: File, productId?: string) {
   return publicUrlData?.publicUrl || null
 }
 
-export async function uploadProductImages(files: File[], productId?: string) {
+export async function uploadProductImages(
+  supabase: SupabaseClient,
+  files: File[],
+  productId?: string
+) {
   console.log('Uploading images for product_id:', productId)
   const uploadedUrls: string[] = []
   for (const file of files) {
     const fileExt = file.name.split('.').pop()
-    const fileName = `${productId || 'temp'}-${Date.now()}-${Math.random()
-      .toString(36)
-      .substring(2, 8)}.${fileExt}`
+    const fileName = `${
+      productId || 'temp'
+    }-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`
     const filePath = `products/${fileName}`
     const { error } = await supabase.storage
       .from('product-images')

@@ -1,7 +1,8 @@
-import supabase from '@/lib/supabaseClient'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { ProductFormValues } from '@/components/inventory/ProductForm'
 
 export async function saveProduct(
+  supabase: SupabaseClient,
   values: ProductFormValues & {
     images?: { id?: string; url: string; alt?: string }[]
     removedImageIds?: string[]

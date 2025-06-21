@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import supabase from '@/lib/supabaseClient'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 // POST: Create a new stock reconciliation (draft or submit)
 export async function POST(req: NextRequest) {
+  const supabase = createRouteHandlerClient({ cookies })
   try {
     const body = await req.json()
     const {
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
 
 // PUT: Update an existing stock reconciliation
 export async function PUT(req: NextRequest) {
+  const supabase = createRouteHandlerClient({ cookies })
   try {
     const body = await req.json()
     const { id, ...updateData } = body

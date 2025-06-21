@@ -1,0 +1,31 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createRouteHandlerClient({ cookies })
+  const { id } = params
+
+  try {
+    const body = await req.json()
+    const { data, error } = await supabase
+      .from('stock_reconciliations')
+      .update(body)
+      .eq('id', id)
+      .select()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json(data)
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || 'Internal Server Error' },
+      { status: 500 }
+    )
+  }
+}

@@ -22,6 +22,7 @@ import {
   FormControl,
   FormMessage,
 } from '../ui/form'
+import { useAuth } from '@/contexts/AuthContext'
 import { saveProduct } from '../../lib/saveProduct'
 import { uploadProductImages } from '../../lib/uploadProductImage'
 import { toast } from 'sonner'
@@ -84,6 +85,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   isLoading = false,
   existingImages: existingImagesProp,
 }) => {
+  const { supabase } = useAuth()
+  const dragItem = useRef<number | null>(null)
+  const dragOverItem = useRef<number | null>(null)
+
   // Fallback: extract images from initialValues if existingImages prop is not provided
   const getInitialExistingImages = () => {
     if (existingImagesProp && existingImagesProp.length > 0)
@@ -131,8 +136,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [skuStatus, setSkuStatus] = React.useState<
     'idle' | 'loading' | 'unique' | 'not-unique'
   >('idle')
-  const dragItem = useRef<number | null>(null)
-  const dragOverItem = useRef<number | null>(null)
 
   // Use a separate id prop for edit mode
   const productId = (initialValues as any).id
@@ -340,6 +343,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (newImages.length > 0) {
         try {
           uploadedImageUrls = await uploadProductImages(
+            supabase,
             newImages.map((img) => img.file!),
             productId
           )
@@ -370,6 +374,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         productId
       )
       await saveProduct(
+        supabase,
         {
           ...values,
           images: imagesForSave,

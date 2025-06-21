@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import supabase from '@/lib/supabaseClient'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 // POST: Adjust stock for a product (and optionally a variant)
 export async function POST(req: NextRequest) {
+  const supabase = createRouteHandlerClient({ cookies })
   const {
     product_id,
     variant_id,

@@ -26,6 +26,14 @@ import {
   CommandEmpty,
 } from '@/components/ui/command'
 import { Reconciliation } from '@/lib/types'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface Product {
   id: string
@@ -35,7 +43,7 @@ interface Product {
   variants?: { sku_variant: string }[]
 }
 
-interface ReconProduct extends Product {
+export interface ReconProduct extends Product {
   physicalCount: string | number
   discrepancy: number
   estimatedImpact: number
@@ -189,6 +197,65 @@ export function StockReconciliationDialog({
     onOpenChange(false)
   }
 
+  async function handleApprovalOrRejection(action: 'approve' | 'reject') {
+    if (!reconciliationData) return
+
+    const payload = {
+      status: action === 'approve' ? 'approved' : 'rejected',
+      approval_notes: '',
+      data: selectedProducts,
+    }
+
+    const url = `/api/stock-reconciliations/${reconciliationData.id}`
+
+    try {
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const supabaseResponse = await res.json()
+
+      if (!res.ok) {
+        console.error('Supabase response:', supabaseResponse)
+        console.error('Supabase query failed:', {
+          table: 'stock_reconciliations',
+          update: payload,
+          filter: { id: reconciliationData.id },
+        })
+        const errorText = await res.text()
+        throw new Error(`Failed to ${action} reconciliation: ${errorText}`)
+      }
+
+      if (action === 'approve') {
+        // Update product quantities to match physical count
+        for (const product of selectedProducts) {
+          const productUpdateUrl = `/api/products/${product.id}`
+          const productPayload = {
+            quantity_on_hand: product.physicalCount,
+          }
+
+          const productRes = await fetch(productUpdateUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productPayload),
+          })
+
+          if (!productRes.ok) {
+            console.error('Failed to update product:', product)
+          }
+        }
+      }
+
+      onOpenChange(false)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      alert(errorMessage)
+    }
+  }
+
   // Move ReconTableRow outside of StockReconciliationDialog
   function ReconTableRow({
     p,
@@ -196,21 +263,23 @@ export function StockReconciliationDialog({
     onReasonChange,
     onRemove,
     discrepancyReasons,
+    isDisabled,
   }: {
     p: ReconProduct
     onPhysicalChange: (id: string, value: string) => void
     onReasonChange: (id: string, value: string) => void
     onRemove: (id: string) => void
     discrepancyReasons: string[]
+    isDisabled: boolean
   }) {
     return (
-      <tr key={p.id}>
-        <td className='px-2 py-1 border'>{p.name}</td>
-        <td className='px-2 py-1 border'>
+      <TableRow key={p.id}>
+        <TableCell>{p.name}</TableCell>
+        <TableCell>
           {p.variants?.map((v) => v.sku_variant).join(', ') || '-'}
-        </td>
-        <td className='px-2 py-1 border'>{p.quantity_on_hand} unit</td>
-        <td className='px-2 py-1 border'>
+        </TableCell>
+        <TableCell>{p.quantity_on_hand} unit</TableCell>
+        <TableCell>
           <Input
             type='number'
             min='0'
@@ -218,28 +287,26 @@ export function StockReconciliationDialog({
             onChange={(e) => onPhysicalChange(p.id, e.target.value)}
             className='w-24'
             placeholder='Enter value'
+            disabled={isDisabled}
           />
-        </td>
-        <td
-          className={`px-2 py-1 border ${
-            p.discrepancy < 0 ? 'text-red-500' : 'text-green-600'
-          }`}
+        </TableCell>
+        <TableCell
+          className={`{ p.discrepancy < 0 ? 'text-red-500' : 'text-green-600' }`}
         >
           {p.discrepancy} unit
-        </td>
-        <td
-          className={`px-2 py-1 border ${
-            p.estimatedImpact < 0 ? 'text-red-500' : 'text-green-600'
-          }`}
+        </TableCell>
+        <TableCell
+          className={`{ p.estimatedImpact < 0 ? 'text-red-500' : 'text-green-600' }`}
         >
           {p.estimatedImpact === 0
             ? '₦0.00'
             : `₦${p.estimatedImpact.toLocaleString()}`}
-        </td>
-        <td className='px-2 py-1 border'>
+        </TableCell>
+        <TableCell>
           <Select
             value={p.reason}
             onValueChange={(val) => onReasonChange(p.id, val)}
+            disabled={isDisabled}
           >
             <SelectTrigger className='w-32'>
               <SelectValue placeholder='Select' />
@@ -252,13 +319,13 @@ export function StockReconciliationDialog({
               ))}
             </SelectContent>
           </Select>
-        </td>
-        <td className='px-2 py-1 border text-center'>
+        </TableCell>
+        <TableCell>
           <Button size='icon' variant='ghost' onClick={() => onRemove(p.id)}>
             ×
           </Button>
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
     )
   }
 
@@ -284,9 +351,14 @@ export function StockReconciliationDialog({
     return () => document.removeEventListener('mousedown', handleClick)
   }, [commandComboOpen])
 
+  // Update UI to disable buttons and fields based on status
+  const isDisabled =
+    reconciliationData?.status === 'approved' ||
+    reconciliationData?.status === 'rejected'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-4xl max-h-[90vh] overflow-y-auto'>
+      <DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-4xl'>
         <DialogHeader>
           <DialogTitle>Stock Reconciliation</DialogTitle>
           <p className='text-sm text-gray-500'>
@@ -295,13 +367,13 @@ export function StockReconciliationDialog({
           </p>
         </DialogHeader>
 
-        <div className='flex flex-col gap-4 py-2'>
+        <div className='flex flex-col gap-4 overflow-hidden py-2'>
           {/* Combobox to add products */}
           <div className='relative w-full'>
             {/* --- Absolute Command Combobox (popover style) --- */}
-            <div className='flex items-end w-full gap-8'>
-              <div className='pt-4 relative w-full max-w-md'>
-                <label className='block mb-1 text-sm font-medium'>
+            <div className='flex w-full items-end gap-8'>
+              <div className='relative w-full max-w-md pt-4'>
+                <label className='mb-1 block text-sm font-medium'>
                   Add Product
                 </label>
                 <Input
@@ -319,7 +391,7 @@ export function StockReconciliationDialog({
                 {commandComboOpen && (
                   <div
                     ref={commandBoxRef}
-                    className='absolute left-0 z-50 mt-1 w-full bg-background border rounded-md shadow-lg max-h-64 overflow-auto'
+                    className='bg-background absolute left-0 z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border shadow-lg'
                   >
                     <Command className='w-full border-0 shadow-none'>
                       <CommandList className='max-h-64 overflow-auto'>
@@ -367,49 +439,55 @@ export function StockReconciliationDialog({
               </div>
 
               {/* Action buttons at the top */}
-              <div className='flex gap-2 ml-auto'>
-                <Button variant='outline' onClick={handleBack}>
+              <div className='ml-auto flex gap-2'>
+                <Button
+                  variant='outline'
+                  onClick={handleBack}
+                  disabled={isDisabled}
+                >
                   Back
                 </Button>
                 <Button
                   variant='secondary'
-                  onClick={() => handleSaveOrSubmit('draft')}
+                  onClick={() => handleApprovalOrRejection('approve')}
+                  disabled={isDisabled}
                 >
-                  Save
+                  Approve
                 </Button>
                 <Button
                   variant='default'
-                  onClick={() => handleSaveOrSubmit('pending')}
+                  onClick={() => handleApprovalOrRejection('reject')}
+                  disabled={isDisabled}
                 >
-                  Submit
+                  Reject
                 </Button>
               </div>
             </div>
           </div>
 
-          <div className='overflow-x-auto min-h-[200px] flex items-center justify-center'>
+          <div className='flex min-h-[200px] items-center justify-center overflow-x-auto'>
             {loading ? (
               <Spinner label='Loading reconciliation data...' />
             ) : selectedProducts.length === 0 ? (
-              <div className='text-center w-full py-8 text-gray-400'>
+              <div className='w-full py-8 text-center text-gray-400'>
                 No products added. Use the search above to add products for
                 reconciliation.
               </div>
             ) : (
-              <table className='min-w-full border text-xs'>
-                <thead>
-                  <tr className='bg-gray-100'>
-                    <th className='px-2 py-1 border'>Product Name</th>
-                    <th className='px-2 py-1 border'>Variant</th>
-                    <th className='px-2 py-1 border'>System count</th>
-                    <th className='px-2 py-1 border'>Physical Count</th>
-                    <th className='px-2 py-1 border'>Discrepancies</th>
-                    <th className='px-2 py-1 border'>Estimated Impact</th>
-                    <th className='px-2 py-1 border'>Discrepancy Reason</th>
-                    <th className='px-2 py-1 border'>Remove</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product Name</TableHead>
+                    <TableHead>Variant</TableHead>
+                    <TableHead>System count</TableHead>
+                    <TableHead>Physical Count</TableHead>
+                    <TableHead>Discrepancies</TableHead>
+                    <TableHead>Estimated Impact</TableHead>
+                    <TableHead>Discrepancy Reason</TableHead>
+                    <TableHead>Remove</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {selectedProducts.map((p) => (
                     <ReconTableRow
                       key={p.id}
@@ -418,10 +496,11 @@ export function StockReconciliationDialog({
                       onReasonChange={handleReasonChange}
                       onRemove={handleRemoveProduct}
                       discrepancyReasons={discrepancyReasons}
+                      isDisabled={isDisabled}
                     />
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
         </div>

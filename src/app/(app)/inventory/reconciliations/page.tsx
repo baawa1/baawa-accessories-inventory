@@ -2,13 +2,14 @@
 
 import ReconciliationsList from '@/components/inventory/reconciliations-list'
 import { Separator } from '@/components/ui/separator'
-import supabase from '@/lib/supabaseClient'
+import { useAuth } from '@/contexts/AuthContext'
 import { Reconciliation, Product } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { StockReconciliationDialog } from '@/components/inventory/StockReconciliationDialog'
 import { useEffect, useState } from 'react'
 
 export default function StockReconciliationsPage() {
+  const { supabase } = useAuth()
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([])
   const [reconciliationDialogOpen, setReconciliationDialogOpen] =
     useState(false)
@@ -16,6 +17,8 @@ export default function StockReconciliationsPage() {
   const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
+    if (!supabase) return
+
     const fetchReconciliations = async () => {
       const { data, error } = await supabase
         .from('stock_reconciliations')
@@ -41,7 +44,7 @@ export default function StockReconciliationsPage() {
 
     fetchReconciliations()
     fetchProducts()
-  }, [])
+  }, [supabase])
 
   const handleOpenReconciliation = () => {
     setReconciliationLoading(true)

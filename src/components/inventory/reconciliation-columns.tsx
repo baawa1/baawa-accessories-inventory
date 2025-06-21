@@ -7,13 +7,76 @@ import { DataTableColumnHeader } from '@/components/data-table-column-header'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { StockReconciliationDialog } from './StockReconciliationDialog'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import supabase from '@/lib/supabaseClient'
+
+const ActionCell = ({ row }: { row: any }) => {
+  const { supabase } = useAuth()
+  const reconciliationData = row.original
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [products, setProducts] = useState<Product[]>([])
+
+  useEffect(() => {
+    async function fetchProducts() {
+      if (!supabase) return
+      const { data, error } = await supabase.from('products').select('*')
+      if (!error) {
+        setProducts(data || [])
+      }
+    }
+
+    fetchProducts()
+  }, [supabase])
+
+  const openEditDialog = () => {
+    setEditDialogOpen(true)
+  }
+
+  const openViewDialog = () => {
+    setViewDialogOpen(true)
+  }
+
+  return (
+    <div className='flex gap-2'>
+      <Button variant='secondary' onClick={openEditDialog}>
+        Edit
+      </Button>
+      <Button variant='outline' onClick={openViewDialog}>
+        View
+      </Button>
+
+      {editDialogOpen && (
+        <StockReconciliationDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          products={products}
+          reconciliationData={reconciliationData}
+        />
+      )}
+
+      {viewDialogOpen && (
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reconciliation Details</DialogTitle>
+            </DialogHeader>
+            <div>
+              {/* Render reconciliation details here */}
+              <Button variant='default'>Approve</Button>
+              <Button variant='destructive'>Reject</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  )
+}
 
 export const columns: ColumnDef<Reconciliation>[] = [
   {
@@ -96,65 +159,6 @@ export const columns: ColumnDef<Reconciliation>[] = [
   {
     accessorKey: 'action',
     header: 'Action',
-    cell: ({ row }) => {
-      const reconciliationData = row.original
-      const [editDialogOpen, setEditDialogOpen] = useState(false)
-      const [viewDialogOpen, setViewDialogOpen] = useState(false)
-      const [products, setProducts] = useState<Product[]>([])
-
-      useEffect(() => {
-        async function fetchProducts() {
-          const { data, error } = await supabase.from('products').select('*')
-          if (!error) {
-            setProducts(data || [])
-          }
-        }
-
-        fetchProducts()
-      }, [])
-
-      const openEditDialog = () => {
-        setEditDialogOpen(true)
-      }
-
-      const openViewDialog = () => {
-        setViewDialogOpen(true)
-      }
-
-      return (
-        <div className='flex gap-2'>
-          <Button variant='secondary' onClick={openEditDialog}>
-            Edit
-          </Button>
-          <Button variant='outline' onClick={openViewDialog}>
-            View
-          </Button>
-
-          {editDialogOpen && (
-            <StockReconciliationDialog
-              open={editDialogOpen}
-              onOpenChange={setEditDialogOpen}
-              products={products} // Pass fetched products
-              reconciliationData={reconciliationData}
-            />
-          )}
-
-          {viewDialogOpen && (
-            <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Reconciliation Details</DialogTitle>
-                </DialogHeader>
-                <div>
-                  {/* Render reconciliation details here */}
-                  <Button variant='default'>Approve</Button>
-                  <Button variant='destructive'>Reject</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      )
-    },
+    cell: ({ row }) => <ActionCell row={row} />,
   },
 ]

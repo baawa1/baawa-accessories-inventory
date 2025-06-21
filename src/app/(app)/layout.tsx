@@ -4,6 +4,7 @@ import * as React from 'react'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SiteHeader } from '@/components/site-header'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { ProtectedRoute } from './protected-route'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <SiteHeader />
         <div className='flex flex-1 flex-col'>
           <main className='@container/main flex flex-1 flex-col gap-2 py-4 md:gap-6 md:py-6'>
-            {children}
+            <ProtectedRoute>{children}</ProtectedRoute>
           </main>
         </div>
       </SidebarInset>
