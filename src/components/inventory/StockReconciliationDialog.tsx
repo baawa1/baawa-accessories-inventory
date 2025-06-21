@@ -157,16 +157,31 @@ export function StockReconciliationDialog({
       notes: '',
       data: selectedProducts,
     }
-    const res = await fetch('/api/stock-reconciliations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    const result = await res.json()
-    if (res.ok) {
+
+    const url = reconciliationData
+      ? `/api/stock-reconciliations/${reconciliationData.id}` // Update existing reconciliation
+      : '/api/stock-reconciliations' // Create new reconciliation
+
+    const method = reconciliationData ? 'PUT' : 'POST'
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        throw new Error(`Failed to save reconciliation: ${errorText}`)
+      }
+
+      const result = await res.json()
       onOpenChange(false)
-    } else {
-      alert(result.error || 'Failed to save reconciliation')
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred'
+      alert(errorMessage)
     }
   }
 

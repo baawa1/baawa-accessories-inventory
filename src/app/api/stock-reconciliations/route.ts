@@ -45,3 +45,51 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
+// PUT: Update an existing stock reconciliation
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { id, ...updateData } = body
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID is required in the request body' },
+        { status: 400 }
+      )
+    }
+
+    const { data, error } = await supabase
+      .from('stock_reconciliations')
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(), // Ensure updated_at is set
+        discrepancies: Array.isArray(updateData.data)
+          ? updateData.data.reduce(
+              (sum: number, item: { discrepancy?: number }) =>
+                sum + (item.discrepancy || 0),
+              0
+            )
+          : 0,
+        estimated_impact: Array.isArray(updateData.data)
+          ? updateData.data.reduce(
+              (sum: number, item: { estimatedImpact?: number }) =>
+                sum + (item.estimatedImpact || 0),
+              0
+            )
+          : 0,
+      })
+      .eq('id', id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, reconciliation: data?.[0] })
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
