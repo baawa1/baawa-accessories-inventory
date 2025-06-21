@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { ClientDate } from '@/components/inventory/ClientDate'
 
 // Define the type for our stock adjustment data
 export type StockAdjustment = {
@@ -40,7 +41,7 @@ export const columns: ColumnDef<StockAdjustment>[] = [
   {
     accessorKey: 'createdAt',
     header: 'Date',
-    cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+    cell: ({ row }) => <ClientDate date={row.original.createdAt} />,
   },
   {
     accessorKey: 'productName',

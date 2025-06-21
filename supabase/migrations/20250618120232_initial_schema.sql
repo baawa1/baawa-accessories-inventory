@@ -1,5 +1,41 @@
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'adjustment_type') THEN
+        create type "public"."adjustment_type" as enum ('manual_count', 'damage', 'theft', 'other', 'po_received');
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
+        create type "public"."order_status" as enum ('pending', 'completed', 'cancelled', 'refunded');
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method') THEN
+        create type "public"."payment_method" as enum ('cash', 'bank_transfer', 'pos_machine', 'wallet_credit');
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'po_status') THEN
+        create type "public"."po_status" as enum ('pending', 'ordered', 'partially_received', 'received', 'cancelled');
+    END IF;
+END$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'product_status') THEN
+        create type "public"."product_status" as enum ('active', 'archived', 'draft');
+    END IF;
+END$$;
+
+
 create table if not exists "public"."brands" (
-    "id" integer not null default nextval('brands_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "name" text not null,
     "description" text,
     "created_at" timestamp with time zone default now(),
@@ -8,7 +44,7 @@ create table if not exists "public"."brands" (
 
 
 create table if not exists "public"."categories" (
-    "id" integer not null default nextval('categories_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "name" text not null,
     "description" text,
     "created_at" timestamp with time zone default now(),
@@ -17,7 +53,7 @@ create table if not exists "public"."categories" (
 
 
 create table if not exists "public"."customers" (
-    "id" integer not null default nextval('customers_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "name" text,
     "phone_number" text,
     "email" text,
@@ -27,7 +63,7 @@ create table if not exists "public"."customers" (
 
 
 create table if not exists "public"."order_items" (
-    "id" integer not null default nextval('order_items_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "order_id" integer,
     "product_id" uuid,
     "variant_id" integer,
@@ -40,7 +76,7 @@ create table if not exists "public"."order_items" (
 
 
 create table if not exists "public"."orders" (
-    "id" integer not null default nextval('orders_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "customer_id" integer,
     "user_id" uuid,
     "status" order_status default 'pending'::order_status,
@@ -56,7 +92,7 @@ create table if not exists "public"."orders" (
 
 
 create table if not exists "public"."product_images" (
-    "id" integer not null default nextval('product_images_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "product_id" uuid,
     "variant_id" integer,
     "image_url" text not null,
@@ -68,7 +104,7 @@ create table if not exists "public"."product_images" (
 
 
 create table if not exists "public"."product_variants" (
-    "id" integer not null default nextval('product_variants_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "product_id" uuid,
     "sku_variant" text,
     "color" text,
@@ -108,7 +144,7 @@ create table if not exists "public"."products" (
 
 
 create table if not exists "public"."purchase_order_items" (
-    "id" integer not null default nextval('purchase_order_items_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "purchase_order_id" integer,
     "product_id" uuid not null,
     "variant_id" integer,
@@ -121,7 +157,7 @@ create table if not exists "public"."purchase_order_items" (
 
 
 create table if not exists "public"."purchase_orders" (
-    "id" integer not null default nextval('purchase_orders_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "supplier_id" integer not null,
     "user_id" uuid,
     "status" po_status default 'pending'::po_status,
@@ -134,14 +170,14 @@ create table if not exists "public"."purchase_orders" (
 
 
 create table if not exists "public"."roles" (
-    "id" integer not null default nextval('roles_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "name" text not null,
     "created_at" timestamp with time zone default now()
 );
 
 
 create table if not exists "public"."stock_adjustments" (
-    "id" integer not null default nextval('stock_adjustments_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "product_id" uuid not null,
     "variant_id" integer,
     "user_id" uuid,
@@ -153,7 +189,7 @@ create table if not exists "public"."stock_adjustments" (
 
 
 create table if not exists "public"."suppliers" (
-    "id" integer not null default nextval('suppliers_id_seq'::regclass),
+    "id" SERIAL PRIMARY KEY,
     "name" text not null,
     "contact_name" text,
     "email" text,
@@ -180,56 +216,19 @@ create table if not exists "public"."user_roles" (
 );
 
 
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.brands_id_seq'::regclass AND refobjid = 'public.brands'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.brands'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."brands_id_seq" owned by "public"."brands"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.categories_id_seq'::regclass AND refobjid = 'public.categories'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.categories'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."categories_id_seq" owned by "public"."categories"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.customers_id_seq'::regclass AND refobjid = 'public.customers'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.customers'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."customers_id_seq" owned by "public"."customers"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.order_items_id_seq'::regclass AND refobjid = 'public.order_items'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.order_items'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."order_items_id_seq" owned by "public"."order_items"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.orders_id_seq'::regclass AND refobjid = 'public.orders'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.orders'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."orders_id_seq" owned by "public"."orders"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.product_images_id_seq'::regclass AND refobjid = 'public.product_images'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.product_images'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."product_images_id_seq" owned by "public"."product_images"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.product_variants_id_seq'::regclass AND refobjid = 'public.product_variants'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.product_variants'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."product_variants_id_seq" owned by "public"."product_variants"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.purchase_order_items_id_seq'::regclass AND refobjid = 'public.purchase_order_items'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.purchase_order_items'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."purchase_order_items_id_seq" owned by "public"."purchase_order_items"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.purchase_orders_id_seq'::regclass AND refobjid = 'public.purchase_orders'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.purchase_orders'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."purchase_orders_id_seq" owned by "public"."purchase_orders"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.roles_id_seq'::regclass AND refobjid = 'public.roles'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.roles'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."roles_id_seq" owned by "public"."roles"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.stock_adjustments_id_seq'::regclass AND refobjid = 'public.stock_adjustments'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.stock_adjustments'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."stock_adjustments_id_seq" owned by "public"."stock_adjustments"."id"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_depend WHERE objid = 'public.suppliers_id_seq'::regclass AND refobjid = 'public.suppliers'::regclass AND refobjsubid = (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.suppliers'::regclass AND attname = 'id') AND deptype = 'a') THEN alter sequence "public"."suppliers_id_seq" owned by "public"."suppliers"."id"; END IF; END; $$;
-
 CREATE UNIQUE INDEX IF NOT EXISTS brands_name_key ON public.brands USING btree (name);
-CREATE UNIQUE INDEX IF NOT EXISTS brands_pkey ON public.brands USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS categories_name_key ON public.categories USING btree (name);
-CREATE UNIQUE INDEX IF NOT EXISTS categories_pkey ON public.categories USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS customers_email_key ON public.customers USING btree (email);
 CREATE UNIQUE INDEX IF NOT EXISTS customers_phone_number_key ON public.customers USING btree (phone_number);
-CREATE UNIQUE INDEX IF NOT EXISTS customers_pkey ON public.customers USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS order_items_pkey ON public.order_items USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS orders_pkey ON public.orders USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS product_images_pkey ON public.product_images USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS product_variants_pkey ON public.product_variants USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS product_variants_sku_variant_key ON public.product_variants USING btree (sku_variant);
 CREATE UNIQUE INDEX IF NOT EXISTS products_pkey ON public.products USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS products_sku_key ON public.products USING btree (sku);
 CREATE UNIQUE INDEX IF NOT EXISTS products_slug_key ON public.products USING btree (slug);
-CREATE UNIQUE INDEX IF NOT EXISTS purchase_order_items_pkey ON public.purchase_order_items USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS purchase_orders_pkey ON public.purchase_orders USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS roles_name_key ON public.roles USING btree (name);
-CREATE UNIQUE INDEX IF NOT EXISTS roles_pkey ON public.roles USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS stock_adjustments_pkey ON public.stock_adjustments USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS suppliers_pkey ON public.suppliers USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS user_profiles_pkey ON public.user_profiles USING btree (id);
 CREATE UNIQUE INDEX IF NOT EXISTS user_roles_pkey ON public.user_roles USING btree (user_id, role_id);
 
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'brands_pkey' AND conrelid = 'public.brands'::regclass) THEN alter table "public"."brands" add constraint "brands_pkey" PRIMARY KEY using index "brands_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'categories_pkey' AND conrelid = 'public.categories'::regclass) THEN alter table "public"."categories" add constraint "categories_pkey" PRIMARY KEY using index "categories_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customers_pkey' AND conrelid = 'public.customers'::regclass) THEN alter table "public"."customers" add constraint "customers_pkey" PRIMARY KEY using index "customers_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_items_pkey' AND conrelid = 'public.order_items'::regclass) THEN alter table "public"."order_items" add constraint "order_items_pkey" PRIMARY KEY using index "order_items_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_pkey' AND conrelid = 'public.orders'::regclass) THEN alter table "public"."orders" add constraint "orders_pkey" PRIMARY KEY using index "orders_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'product_images_pkey' AND conrelid = 'public.product_images'::regclass) THEN alter table "public"."product_images" add constraint "product_images_pkey" PRIMARY KEY using index "product_images_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'product_variants_pkey' AND conrelid = 'public.product_variants'::regclass) THEN alter table "public"."product_variants" add constraint "product_variants_pkey" PRIMARY KEY using index "product_variants_pkey"; END IF; END; $$;
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'products_pkey' AND conrelid = 'public.products'::regclass) THEN alter table "public"."products" add constraint "products_pkey" PRIMARY KEY using index "products_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'purchase_order_items_pkey' AND conrelid = 'public.purchase_order_items'::regclass) THEN alter table "public"."purchase_order_items" add constraint "purchase_order_items_pkey" PRIMARY KEY using index "purchase_order_items_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'purchase_orders_pkey' AND conrelid = 'public.purchase_orders'::regclass) THEN alter table "public"."purchase_orders" add constraint "purchase_orders_pkey" PRIMARY KEY using index "purchase_orders_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'roles_pkey' AND conrelid = 'public.roles'::regclass) THEN alter table "public"."roles" add constraint "roles_pkey" PRIMARY KEY using index "roles_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_adjustments_pkey' AND conrelid = 'public.stock_adjustments'::regclass) THEN alter table "public"."stock_adjustments" add constraint "stock_adjustments_pkey" PRIMARY KEY using index "stock_adjustments_pkey"; END IF; END; $$;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'suppliers_pkey' AND conrelid = 'public.suppliers'::regclass) THEN alter table "public"."suppliers" add constraint "suppliers_pkey" PRIMARY KEY using index "suppliers_pkey"; END IF; END; $$;
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_pkey' AND conrelid = 'public.user_profiles'::regclass) THEN alter table "public"."user_profiles" add constraint "user_profiles_pkey" PRIMARY KEY using index "user_profiles_pkey"; END IF; END; $$;
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_roles_pkey' AND conrelid = 'public.user_roles'::regclass) THEN alter table "public"."user_roles" add constraint "user_roles_pkey" PRIMARY KEY using index "user_roles_pkey"; END IF; END; $$;
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'brands_name_key' AND conrelid = 'public.brands'::regclass) THEN alter table "public"."brands" add constraint "brands_name_key" UNIQUE using index "brands_name_key"; END IF; END; $$;
@@ -832,40 +831,5 @@ grant trigger on table "public"."user_roles" to "authenticated";
 grant truncate on table "public"."user_roles" to "authenticated";
 
 grant update on table "public"."user_roles" to "authenticated";
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'adjustment_type') THEN
-        create type "public"."adjustment_type" as enum ('manual_count', 'damage', 'theft', 'other', 'po_received');
-    END IF;
-END$$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
-        create type "public"."order_status" as enum ('pending', 'completed', 'cancelled', 'refunded');
-    END IF;
-END$$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method') THEN
-        create type "public"."payment_method" as enum ('cash', 'bank_transfer', 'pos_machine', 'wallet_credit');
-    END IF;
-END$$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'po_status') THEN
-        create type "public"."po_status" as enum ('pending', 'ordered', 'partially_received', 'received', 'cancelled');
-    END IF;
-END$$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'product_status') THEN
-        create type "public"."product_status" as enum ('active', 'archived', 'draft');
-    END IF;
-END$$;
 
 

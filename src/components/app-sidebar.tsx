@@ -39,6 +39,7 @@ const navItems = [
       { title: 'Products', url: '/inventory' },
       { title: 'Add Product', url: '/inventory/add' },
       { title: 'Adjustments', url: '/inventory/adjustments' },
+      { title: 'Reconciliations', url: '/inventory/reconciliations' },
     ],
   },
   {

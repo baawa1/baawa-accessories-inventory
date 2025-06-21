@@ -25,6 +25,7 @@ import {
   CommandItem,
   CommandEmpty,
 } from '@/components/ui/command'
+import { Reconciliation } from '@/lib/types'
 
 interface Product {
   id: string
@@ -45,6 +46,7 @@ interface StockReconciliationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   products: Product[]
+  reconciliationData?: Reconciliation // Accept Reconciliation type
 }
 
 const discrepancyReasons = [
@@ -63,6 +65,7 @@ export function StockReconciliationDialog({
   onOpenChange,
   products,
   loading,
+  reconciliationData,
 }: StockReconciliationDialogProps & { loading?: boolean }) {
   const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
@@ -77,14 +80,29 @@ export function StockReconciliationDialog({
     })
   }, [])
 
-  const [selectedProducts, setSelectedProducts] = useState<ReconProduct[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<ReconProduct[]>(
+    reconciliationData?.data
+      ? (typeof reconciliationData.data === 'string'
+          ? JSON.parse(reconciliationData.data)
+          : reconciliationData.data
+        ).map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          quantity_on_hand: product.quantity_on_hand || 0,
+          selling_price: product.selling_price || 0,
+          physicalCount: product.physicalCount || '',
+          discrepancy: product.discrepancy || 0,
+          estimatedImpact: product.estimatedImpact || 0,
+          reason: product.reason || '',
+        }))
+      : []
+  )
 
   useEffect(() => {
-    if (open) {
+    if (open && !reconciliationData) {
       setSelectedProducts([])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, reconciliationData])
 
   const [productSearch, setProductSearch] = useState('')
   const filteredProducts = products.filter(
