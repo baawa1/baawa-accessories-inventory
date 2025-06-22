@@ -1,10 +1,9 @@
 import React from 'react'
-import { ProductForm } from '@/components/inventory/ProductForm'
-import { createClient } from '@/lib/supabase/server'
+import { ProductForm } from '@/components/inventory/product-form'
+import supabase from '@/lib/supabaseClient'
 import { notFound } from 'next/navigation'
 
 async function fetchProduct(id: string) {
-  const supabase = await createClient()
   const { data } = await supabase
     .from('products')
     .select('*', { count: 'exact' })
@@ -13,22 +12,18 @@ async function fetchProduct(id: string) {
   return data
 }
 async function fetchCategories() {
-  const supabase = await createClient()
   const { data } = await supabase.from('categories').select('id, name')
   return data || []
 }
 async function fetchSuppliers() {
-  const supabase = await createClient()
   const { data } = await supabase.from('suppliers').select('id, name')
   return data || []
 }
 async function fetchBrands() {
-  const supabase = await createClient()
   const { data } = await supabase.from('brands').select('id, name')
   return data || []
 }
 async function fetchProductImages(productId: string) {
-  const supabase = await createClient()
   const { data } = await supabase
     .from('product_images')
     .select('id, image_url, alt_text, display_order')
@@ -37,7 +32,6 @@ async function fetchProductImages(productId: string) {
   return data || []
 }
 async function fetchProductVariants(productId: string) {
-  const supabase = await createClient()
   const { data } = await supabase
     .from('product_variants')
     .select('*')

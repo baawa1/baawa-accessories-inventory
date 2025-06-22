@@ -1,9 +1,9 @@
 import React from 'react'
 import ProductsListPage from './products-list'
-import { createClient } from '@/lib/supabase/server'
+import supabase from '../../../lib/supabaseClient'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 
 const InventoryPage = async () => {
-  const supabase = await createClient()
   
   // Fetch products with their main image (lowest display_order)
   const { data: products, error } = await supabase
@@ -44,13 +44,15 @@ const InventoryPage = async () => {
     ])
 
   return (
-    <ProductsListPage
-      products={productsWithVariants}
-      categories={categories || []}
-      brands={brands || []}
-      suppliers={suppliers || []}
-      error={error}
-    />
+    <ErrorBoundary>
+      <ProductsListPage
+        products={productsWithVariants}
+        categories={categories || []}
+        brands={brands || []}
+        suppliers={suppliers || []}
+        error={error}
+      />
+    </ErrorBoundary>
   )
 }
 

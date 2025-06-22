@@ -1,0 +1,182 @@
+## Relevant Files
+
+- `src/app/` - Main application directory for Next.js.
+- `src/app/api/` - API route handlers.
+- `src/components/` - Reusable UI components (Shadcn UI).
+  - `src/components/ui/` - Shadcn UI components.
+  - `src/components/inventory/` - Components specific to inventory management.
+  - `src/components/pos/` - Components specific to POS.
+  - `src/components/ai/` - Components related to AI content generation.
+- `src/lib/` - Utility functions, Supabase client, API clients.
+  - `src/lib/supabaseClient.ts` - Supabase client initialization.
+  - `src/lib/openaiClient.ts` - OpenAI API client.
+  - `src/lib/webflowClient.ts` - Webflow API client.
+  - `src/lib/utils.ts` - General utility functions.
+- `src/hooks/` - Custom React hooks.
+- `src/contexts/` - React context for global state management (e.g., Auth, Offline POS).
+- `src/db/` - Supabase database schema definitions and migrations (if managed manually, otherwise via Supabase UI).
+- `public/` - Static assets (e.g., BaaWA logo).
+- `tests/` - Directory for end-to-end and integration tests.
+  - `tests/components/inventory/` - Tests for inventory components.
+  - `tests/components/pos/` - Tests for POS components.
+- `src/app/(auth)/` - Authentication-related pages (login, signup).
+- `src/app/(app)/dashboard/` - Main dashboard after login.
+- `src/app/(app)/inventory/` - Inventory management pages.
+- `src/app/(app)/pos/` - POS interface.
+- `src/app/(app)/settings/` - Application settings.
+
+### Notes
+
+- Unit tests (`*.test.ts` or `*.test.tsx`) should be co-located with the files they test (e.g., `src/components/inventory/ProductForm.tsx` and `src/components/inventory/ProductForm.test.tsx`).
+- Use `npm run test` or `npx jest [optional/path/to/test/file]` to run tests.
+
+## Tasks
+
+- [ ] 1.0 Project Setup & Core Infrastructure
+  - [x] 1.1 Initialize Next.js 15 project with TypeScript.
+  - [x] 1.2 Set up Supabase project (Database, Auth)
+    - [x] **1.2.1 Define initial database schema.** (Ran SQL script in Supabase SQL Editor)
+    - [x] **1.2.2 Configure Supabase Auth (email/password).** (Confirmed default email provider is sufficient for now)
+  - [x] 1.3 Install and configure Tailwind CSS & Shadcn UI.
+  - [x] 1.4 Install Framer Motion for animations.
+  - [x] 1.5 Set up ESLint, Prettier for code quality.
+  - [x] 1.6 Initialize Git repository and make initial commit.
+  - [x] 1.7 Set up Vercel project for frontend deployment.
+  - [ ] 1.8 Create basic project structure (folders for components, lib, hooks, contexts, db).
+  - [ ] 1.9 Implement basic layout components (Navbar, Sidebar, Footer) using Shadcn UI.
+  - [ ] 1.10 Set up basic routing for main sections (Dashboard, Inventory, POS, Settings, Auth).
+- [ ] 2.0 Inventory Management Module Development
+  - [ ] 2.1 Product Data Model & Database Schema (FR1.1)
+    - [ ] 2.1.1 Create/Verify Supabase tables for `products` (SKU, category, brand, model_name, cost_price, selling_price, quantity_on_hand, supplier_id, status, description, tags).
+    - [ ] 2.1.2 Create/Verify Supabase table for `product_variants` (product_id, color, size, sku_variant, price_variant, quantity_variant).
+    - [ ] 2.1.3 Create/Verify Supabase table for `product_images` (product_id, image_url, alt_text, display_order).
+    - [ ] 2.1.4 Create/Verify Supabase table for `categories`.
+    - [ ] 2.1.5 Create/Verify Supabase table for `suppliers` (name, contact_info, products_supplied_ids).
+  - [ ] 2.2 Product List & Filtering UI (FR1.9)
+    - [ ] 2.2.1 Create page to display list of products with pagination.
+    - [ ] 2.2.2 Implement server-side fetching of products from Supabase.
+    - [ ] 2.2.3 Implement filtering (by SKU, name, category, brand) and sorting.
+    - [ ] 2.2.4 Implement search functionality.
+  - [ ] 2.3 Add/Edit Product Form & Logic (FR1.1, FR1.2)
+    - [ ] 2.3.1 Create form component for adding/editing products (using Shadcn UI form components).
+    - [ ] 2.3.2 Implement client-side and server-side validation.
+    - [ ] 2.3.3 Implement logic to save product data (including variants and images) to Supabase.
+    - [ ] 2.3.4 Implement image upload functionality (to Supabase Storage or other provider).
+  - [ ] 2.4 Bulk CSV Upload for Products (FR1.2)
+    - [ ] 2.4.1 Design CSV template for product import.
+    - [ ] 2.4.2 Implement UI for CSV file upload.
+    - [ ] 2.4.3 Implement backend logic to parse CSV and create/update products in Supabase.
+    - [ ] 2.4.4 Implement column mapping feature.
+    - [ ] 2.4.5 Provide feedback on import success/failure.
+  - [ ] 2.5 Stock Adjustment Feature (FR1.4)
+    - [ ] 2.5.1 Create UI for manual stock level adjustments (with reason logging).
+    - [ ] 2.5.2 Implement backend logic to update stock and log adjustments.
+  - [ ] 2.6 Supplier Management (FR1.5)
+    - [ ] 2.6.1 Create UI for adding/editing supplier information.
+    - [ ] 2.6.2 Implement backend logic for supplier CRUD operations.
+  - [ ] 2.7 Purchase Order (PO) Management (FR1.5)
+    - [ ] 2.7.1 Create UI for creating and tracking POs (link to suppliers, products, quantities, status).
+    - [ ] 2.7.2 Implement backend logic for PO CRUD and status updates.
+    - [ ] 2.7.3 Implement logic to update stock levels upon PO fulfillment.
+  - [ ] 2.8 Low Stock Alerts & Reorder Management (FR1.6, FR1.7, FR1.8)
+    - [ ] 2.8.1 Implement logic to check for low stock based on thresholds.
+    - [ ] 2.8.2 Create UI for setting reorder level thresholds per product.
+    - [ ] 2.8.3 Display low stock alerts in the UI (e.g., on a dashboard widget, product list).
+    - [ ] 2.8.4 Develop basic reorder recommendation logic.
+  - [ ] 2.9 Product Archiving (FR1.10)
+    - [ ] 2.9.1 Implement functionality to archive/unarchive products.
+    - [ ] 2.9.2 Ensure archived products are hidden from active views but data is retained.
+  - [ ] 2.10 Inventory Reporting (FR1.11)
+    - [ ] 2.10.1 Develop basic inventory reports (e.g., current stock list, stock value).
+    - [ ] 2.10.2 Implement export to CSV/PDF functionality for reports.
+- [ ] 3.0 POS Checkout Feature Implementation
+  - [ ] 3.1 POS Interface Design & Layout (FR2.1, FR2.2)
+    - [ ] 3.1.1 Design user-friendly POS interface (product search/scan, cart, payment).
+    - [ ] 3.1.2 Implement product search (name, SKU) and barcode scanning integration (if hardware available).
+    - [ ] 3.1.3 Implement shopping cart functionality (add/remove items, update quantity).
+  - [ ] 3.2 Discount Application (FR2.3)
+    - [ ] 3.2.1 Implement UI for applying discounts (per item, per total order).
+    - [ ] 3.2.2 Implement logic to calculate discounted prices.
+  - [ ] 3.3 Payment Processing (FR2.4)
+    - [ ] 3.3.1 Implement UI for selecting payment methods (Cash, Bank Transfer, POS Machine).
+    - [ ] 3.3.2 Implement logic to record payment details.
+    - [ ] 3.3.3 For "POS Machine", simply record that payment was made via external POS.
+  - [ ] 3.4 Receipt Generation & Printing (FR2.5)
+    - [ ] 3.4.1 Design receipt template with all required information.
+    - [ ] 3.4.2 Implement logic to generate receipt data.
+    - [ ] 3.4.3 Implement print functionality (browser print dialog).
+  - [ ] 3.5 Offline Mode (FR2.6)
+    - [ ] 3.5.1 Implement local storage (IndexedDB) for offline transaction data.
+    - [ ] 3.5.2 Implement logic to detect online/offline status.
+    - [ ] 3.5.3 Implement queueing and syncing of offline transactions when connection is restored.
+    - [ ] 3.5.4 Provide UI feedback for offline status and sync progress.
+  - [ ] 3.6 Customer Data Capture (Optional) (FR2.7)
+    - [ ] 3.6.1 Create UI for optional customer data entry (name, phone, email).
+    - [ ] 3.6.2 Implement logic to save customer data (link to Supabase `customers` table).
+  - [ ] 3.7 Sales Transaction Logging (FR1.3, FR2.8)
+    - [ ] 3.7.1 Create Supabase tables for `orders` and `order_items`.
+    - [ ] 3.7.2 Implement logic to save completed sales transactions to the database.
+    - [ ] 3.7.3 Ensure stock levels are updated automatically after a sale (see FR1.3).
+- [ ] 4.0 AI-Powered Content Generation & Webflow Integration
+  - [ ] 4.1 OpenAI API Integration (FR3.1)
+    - [ ] 4.1.1 Set up OpenAI API client in `lib/openaiClient.ts`.
+    - [ ] 4.1.2 Securely manage OpenAI API key.
+  - [ ] 4.2 AI Content Generation UI & Logic (FR3.2, FR3.3, FR3.8)
+    - [ ] 4.2.1 Create UI within product form to trigger AI content generation.
+    - [ ] 4.2.2 Allow selection of content types to generate (short/long desc, SEO, social).
+    - [ ] 4.2.3 Implement API route to call OpenAI with product details (category, brand, style, color, features, image info).
+    - [ ] 4.2.4 Implement logic to parse OpenAI response and populate form fields.
+  - [ ] 4.3 Content Preview, Edit & Approval (FR3.4, FR3.5)
+    - [ ] 4.3.1 Ensure AI-generated content is displayed in editable fields.
+    - [ ] 4.3.2 Implement a clear way for users to approve content for use/publishing.
+  - [ ] 4.4 SEO Keyword & Tone Input (FR3.6, FR3.7)
+    - [ ] 4.4.1 Add fields in the UI for users to input target SEO keywords and select tone.
+    - [ ] 4.4.2 Pass these inputs to the OpenAI prompt.
+  - [ ] 4.5 Webflow CMS API Integration (FR4.1)
+    - [ ] 4.5.1 Set up Webflow API client in `lib/webflowClient.ts`.
+    - [ ] 4.5.2 Securely manage Webflow API key.
+    - [ ] 4.5.3 Identify relevant Webflow Collection and fields to map to.
+  - [ ] 4.6 Product Sync to Webflow (FR4.2, FR4.3, FR4.4)
+    - [ ] 4.6.1 Implement UI for manual per-product sync and batch sync to Webflow.
+    - [ ] 4.6.2 Implement API route to push product data (including AI content) to Webflow CMS.
+    - [ ] 4.6.3 Handle mapping of product fields to Webflow CMS fields.
+    - [ ] 4.6.4 Implement feedback mechanism for sync status (success/failure).
+    - [ ] 4.6.5 (Optional MVP+) Consider auto-sync toggle.
+- [ ] 5.0 User Management, Roles & Permissions
+  - [ ] 5.1 Authentication Setup (Supabase Auth) (FR5.1)
+    - [ ] 5.1.1 Implement login, logout functionality using Next.js and Supabase Auth.
+    - [ ] 5.1.2 Create protected routes/pages accessible only to authenticated users.
+  - [ ] 5.2 Role-Based Access Control (RBAC) (FR5.2)
+    - [ ] 5.2.1 Define roles (Admin, Manager, Staff) in Supabase (e.g., using custom claims or a `user_roles` table).
+    - [ ] 5.2.2 Implement logic to restrict access to features/modules based on user role.
+    - [ ] 5.2.3 Ensure UI elements are hidden/disabled based on permissions.
+  - [ ] 5.3 User Account Management (Admin) (FR5.3)
+    - [ ] 5.3.1 Create UI for Admins to view, create, edit, and deactivate user accounts.
+    - [ ] 5.3.2 Implement backend logic for user management operations via Supabase.
+- [ ] 6.0 Styling, UI/UX Enhancements, Testing & Deployment
+  - [ ] 6.1 Apply BaaWA Branding (Colors, Fonts, Logo) (Design Considerations)
+    - [ ] 6.1.1 Configure Tailwind CSS with brand colors and fonts.
+    - [ ] 6.1.2 Integrate logo into Navbar/Login page.
+  - [ ] 6.2 UI Polish & Animations (Design Considerations)
+    - [ ] 6.2.1 Review and refine UI across the application for consistency and ease of use.
+    - [ ] 6.2.2 Implement subtle animations/transitions using Framer Motion where appropriate.
+  - [ ] 6.3 Responsive Design & Accessibility (Design Considerations)
+    - [ ] 6.3.1 Test and ensure responsiveness across target devices (desktop, tablet for POS).
+    - [ ] 6.3.2 Perform accessibility checks (color contrast, keyboard navigation, tap targets).
+  - [ ] 6.4 Unit & Integration Testing
+    - [ ] 6.4.1 Write unit tests for critical components, utility functions, and API routes (using Jest/React Testing Library).
+    - [ ] 6.4.2 Write integration tests for key user flows (e.g., adding a product, completing a POS transaction).
+  - [ ] 6.5 End-to-End (E2E) Testing (Optional MVP+)
+    - [ ] 6.5.1 Set up E2E testing framework (e.g., Playwright, Cypress).
+    - [ ] 6.5.2 Write E2E tests for major features.
+  - [ ] 6.6 Pre-deployment Checklist & Final Testing
+    - [ ] 6.6.1 Perform thorough testing of all features on a staging environment (if available).
+    - [ ] 6.6.2 Verify all success metrics criteria can be tested/measured.
+  - [ ] 6.7 Deployment to Vercel & Supabase
+    - [ ] 6.7.1 Configure production environment variables for Vercel and Supabase.
+    - [ ] 6.7.2 Deploy Next.js frontend to Vercel.
+    - [ ] 6.7.3 Ensure Supabase project is configured for production.
+  - [ ] 6.8 Data Migration (FR11.1 from user prompt)
+    - [ ] 6.8.1 Develop script or UI for migrating existing Google Sheets/Excel data.
+    - [ ] 6.8.2 Implement column mapping for data import tool.
+    - [ ] 6.8.3 Test migration process thoroughly.

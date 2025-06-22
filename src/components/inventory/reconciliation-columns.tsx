@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { DataTableColumnHeader } from '@/components/data-table-column-header'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
-import { StockReconciliationDialog } from './StockReconciliationDialog'
-import { useAuth } from '@/contexts/AuthContext'
+import { StockReconciliationDialog } from './stock-reconciliation'
+import supabase from '@/lib/supabaseClient'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/dialog'
 
 const ActionCell = ({ row }: { row: any }) => {
-  const { supabase } = useAuth()
   const reconciliationData = row.original
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)

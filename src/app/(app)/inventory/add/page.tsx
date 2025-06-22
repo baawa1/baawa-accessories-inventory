@@ -1,20 +1,17 @@
 import React from 'react'
-import { ProductForm } from '@/components/inventory/ProductForm'
-import { createClient } from '@/lib/supabase/server'
+import { ProductForm } from '@/components/inventory/product-form'
+import supabase from '@/lib/supabaseClient'
 
 // Fetch categories, suppliers, and brands for dropdowns
 async function fetchCategories() {
-  const supabase = await createClient()
   const { data } = await supabase.from('categories').select('id, name')
   return data || []
 }
 async function fetchSuppliers() {
-  const supabase = await createClient()
   const { data } = await supabase.from('suppliers').select('id, name')
   return data || []
 }
 async function fetchBrands() {
-  const supabase = await createClient()
   const { data } = await supabase.from('brands').select('id, name')
   return data || []
 }

@@ -1,5 +1,6 @@
+import supabase from '@/lib/supabaseClient'
+import { ProductFormValues } from '@/components/inventory/product-form'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { ProductFormValues } from '@/components/inventory/ProductForm'
 
 export async function saveProduct(
   supabase: SupabaseClient,

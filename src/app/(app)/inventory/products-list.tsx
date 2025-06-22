@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { DataTable } from '@/components/data-table'
+import React, { useState, useMemo, useCallback, memo } from 'react'
+import { DataTableLazy } from '@/components/data-table/DataTableLazy'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -20,9 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { StockReconciliationDialog } from '@/components/inventory/StockReconciliationDialog'
-import { Loader2 } from 'lucide-react'
-import { Spinner } from '@/components/ui/spinner'
+import { StockReconciliationDialogLazy } from '@/components/inventory/stock-reconciliation/StockReconciliationDialogLazy'
 
 interface Category {
   id: string
@@ -71,7 +69,7 @@ interface Product {
   }[]
 }
 
-export default function ProductsListPage({
+const ProductsListPage = memo(function ProductsListPage({
   products,
   categories,
   brands,
@@ -84,17 +82,25 @@ export default function ProductsListPage({
   suppliers: Supplier[]
   error?: any
 }) {
-  // Helper to get category/brand/supplier name by id (robust string comparison)
-  const getCategoryName = (id: string | number) =>
-    categories?.find((c) => String(c.id) === String(id))?.name || String(id)
-  const getBrandName = (id: string | number) =>
-    brands?.find((b) => String(b.id) === String(id))?.name || String(id)
-  const getSupplierName = (id: string | number) =>
-    suppliers?.find((s) => String(s.id) === String(id))?.name || String(id)
+  // Memoize helper functions to prevent recreation on every render
+  const getCategoryName = useCallback((id: string | number) =>
+    categories?.find((c) => String(c.id) === String(id))?.name || String(id),
+    [categories]
+  )
+  
+  const getBrandName = useCallback((id: string | number) =>
+    brands?.find((b) => String(b.id) === String(id))?.name || String(id),
+    [brands]
+  )
+  
+  const getSupplierName = useCallback((id: string | number) =>
+    suppliers?.find((s) => String(s.id) === String(id))?.name || String(id),
+    [suppliers]
+  )
 
-  // Adapt product data to match DataTable schema
-  const adaptedData = (products || []).map(
-    (product: Product & { product_images?: any }) => {
+  // Memoize adapted data to prevent expensive recalculation
+  const adaptedData = useMemo(() => {
+    return (products || []).map((product: Product & { product_images?: any }) => {
       // Handle product_images as array or single object
       let imagesArr: { image_url: string; display_order: number }[] = []
       if (Array.isArray(product.product_images)) {
@@ -122,8 +128,8 @@ export default function ProductsListPage({
         brand_name: getBrandName(product.brand_id),
         supplier_name: getSupplierName(product.supplier_id),
       }
-    }
-  )
+    })
+  }, [products, getCategoryName, getBrandName, getSupplierName])
 
   const [filters, setFilters] = useState({
     sku: '',
@@ -139,7 +145,7 @@ export default function ProductsListPage({
     useState(false)
   const [reconciliationLoading, setReconciliationLoading] = useState(false)
 
-  const handleCSVFileSelected = async (file: File) => {
+  const handleCSVFileSelected = useCallback(async (file: File) => {
     setCSVUploading(true)
     setCSVError(undefined)
     try {
@@ -177,40 +183,83 @@ export default function ProductsListPage({
     } finally {
       setCSVUploading(false)
     }
-  }
+  }, [])
 
-  // Filtering logic
-  const filteredData = adaptedData.filter((product) => {
-    const matchesSku =
-      !filters.sku ||
-      product.sku?.toLowerCase().includes(filters.sku.toLowerCase())
-    const matchesName =
-      !filters.name ||
-      product.name?.toLowerCase().includes(filters.name.toLowerCase())
-    const matchesCategory =
-      filters.category_id === 'all' ||
-      product.category_id === filters.category_id
-    const matchesBrand =
-      filters.brand_id === 'all' || product.brand_id === filters.brand_id
-    return matchesSku && matchesName && matchesCategory && matchesBrand
-  })
+  // Memoize filtering logic to prevent recalculation on every render
+  const filteredData = useMemo(() => {
+    return adaptedData.filter((product) => {
+      const matchesSku =
+        !filters.sku ||
+        product.sku?.toLowerCase().includes(filters.sku.toLowerCase())
+      const matchesName =
+        !filters.name ||
+        product.name?.toLowerCase().includes(filters.name.toLowerCase())
+      const matchesCategory =
+        filters.category_id === 'all' ||
+        product.category_id === filters.category_id
+      const matchesBrand =
+        filters.brand_id === 'all' || product.brand_id === filters.brand_id
+      return matchesSku && matchesName && matchesCategory && matchesBrand
+    })
+  }, [adaptedData, filters])
 
-  // Sort categories and brands alphabetically by name before passing to dropdowns
-  const sortedCategories = [...categories].sort((a, b) =>
-    a.name.localeCompare(b.name)
+  // Memoize sorted categories and brands to prevent recreation
+  const sortedCategories = useMemo(() => 
+    [...categories].sort((a, b) => a.name.localeCompare(b.name)),
+    [categories]
   )
-  const sortedBrands = [...brands].sort((a, b) => a.name.localeCompare(b.name))
+  
+  const sortedBrands = useMemo(() => 
+    [...brands].sort((a, b) => a.name.localeCompare(b.name)),
+    [brands]
+  )
 
   const router = useRouter()
 
-  const handleOpenReconciliation = () => {
+  const handleOpenReconciliation = useCallback(() => {
     setReconciliationLoading(true)
     setReconciliationDialogOpen(true)
     // Simulate loading delay (e.g., fetching, heavy mapping)
     setTimeout(() => {
       setReconciliationLoading(false)
     }, 600) // adjust as needed
-  }
+  }, [])
+
+  // Memoize filter handlers to prevent recreation
+  const handleSkuFilterChange = useCallback((value: string) => {
+    setFilters((f) => ({ ...f, sku: value }))
+  }, [])
+
+  const handleNameFilterChange = useCallback((value: string) => {
+    setFilters((f) => ({ ...f, name: value }))
+  }, [])
+
+  const handleCategoryFilterChange = useCallback((value: string) => {
+    setFilters((f) => ({ ...f, category_id: value }))
+  }, [])
+
+  const handleBrandFilterChange = useCallback((value: string) => {
+    setFilters((f) => ({ ...f, brand_id: value }))
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setFilters({
+      sku: '',
+      name: '',
+      category_id: 'all',
+      brand_id: 'all',
+    })
+  }, [])
+
+  const handleAddProductClick = useCallback(() => {
+    setUploadChoiceDialogOpen(false)
+    router.push('/inventory/add')
+  }, [router])
+
+  const handleBulkUploadClick = useCallback(() => {
+    setUploadChoiceDialogOpen(false)
+    setCSVDialogOpen(true)
+  }, [])
 
   if (error) {
     return (
@@ -227,20 +276,18 @@ export default function ProductsListPage({
         <Input
           placeholder='Filter by SKU'
           value={filters.sku}
-          onChange={(e) => setFilters((f) => ({ ...f, sku: e.target.value }))}
+          onChange={(e) => handleSkuFilterChange(e.target.value)}
           className='w-40'
         />
         <Input
           placeholder='Filter by Name'
           value={filters.name}
-          onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value }))}
+          onChange={(e) => handleNameFilterChange(e.target.value)}
           className='w-40'
         />
         <Select
           value={filters.category_id}
-          onValueChange={(val) =>
-            setFilters((f) => ({ ...f, category_id: val }))
-          }
+          onValueChange={handleCategoryFilterChange}
         >
           <SelectTrigger className='w-40'>
             <SelectValue placeholder='Filter by Category' />
@@ -256,7 +303,7 @@ export default function ProductsListPage({
         </Select>
         <Select
           value={filters.brand_id}
-          onValueChange={(val) => setFilters((f) => ({ ...f, brand_id: val }))}
+          onValueChange={handleBrandFilterChange}
         >
           <SelectTrigger className='w-40'>
             <SelectValue placeholder='Filter by Brand' />
@@ -272,14 +319,7 @@ export default function ProductsListPage({
         </Select>
         <button
           className='px-3 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300'
-          onClick={() =>
-            setFilters({
-              sku: '',
-              name: '',
-              category_id: 'all',
-              brand_id: 'all',
-            })
-          }
+          onClick={handleClearFilters}
         >
           Clear Filters
         </button>
@@ -295,7 +335,7 @@ export default function ProductsListPage({
           </Button>
         </div>
       </div>
-      <DataTable data={filteredData} suppliers={suppliers} />
+      <DataTableLazy data={filteredData} suppliers={suppliers} />
       {/* Add Product Choice Dialog */}
       <Dialog
         open={uploadChoiceDialogOpen}
@@ -308,19 +348,13 @@ export default function ProductsListPage({
           <div className='flex flex-col gap-4 pt-4'>
             <Button
               variant='default'
-              onClick={() => {
-                setUploadChoiceDialogOpen(false)
-                router.push('/inventory/add')
-              }}
+              onClick={handleAddProductClick}
             >
               Single Product Upload
             </Button>
             <Button
               variant='outline'
-              onClick={() => {
-                setUploadChoiceDialogOpen(false)
-                setCSVDialogOpen(true)
-              }}
+              onClick={handleBulkUploadClick}
             >
               Bulk Upload via CSV
             </Button>
@@ -344,7 +378,7 @@ export default function ProductsListPage({
         error={csvError}
       />
       {/* Stock Reconciliation Dialog (new) */}
-      <StockReconciliationDialog
+      <StockReconciliationDialogLazy
         open={reconciliationDialogOpen}
         onOpenChange={setReconciliationDialogOpen}
         products={adaptedData}
@@ -352,4 +386,8 @@ export default function ProductsListPage({
       />
     </div>
   )
-}
+})
+
+ProductsListPage.displayName = 'ProductsListPage'
+
+export default ProductsListPage

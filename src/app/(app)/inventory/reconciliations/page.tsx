@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/contexts/AuthContext'
 import { Reconciliation, Product } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { StockReconciliationDialog } from '@/components/inventory/StockReconciliationDialog'
+import { StockReconciliationDialog } from '@/components/inventory/stock-reconciliation'
 import { useEffect, useState } from 'react'
 
 export default function StockReconciliationsPage() {
