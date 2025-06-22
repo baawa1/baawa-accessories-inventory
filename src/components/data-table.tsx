@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import {
   closestCenter,
   DndContext,
@@ -30,9 +31,7 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLayoutColumns,
-  IconLoader,
   IconPlus,
-  IconTrendingUp,
   IconChevronUp,
 } from '@tabler/icons-react'
 import {
@@ -50,19 +49,10 @@ import {
   useReactTable,
   VisibilityState,
 } from '@tanstack/react-table'
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
-import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { useIsMobile } from '@/hooks/use-mobile'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
@@ -81,7 +71,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -99,6 +88,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StockAdjustmentDialog } from '@/components/inventory/StockAdjustmentDialog'
 
@@ -191,7 +189,7 @@ function DragHandle({
 type ProductRow = z.infer<typeof schema> & { variants?: any[] }
 
 // Move columns definition inside DataTable so it can access expandedRows and handleToggleExpand
-export function DataTable({
+function DataTable({
   data: initialData,
   suppliers = [],
 }: {
@@ -284,15 +282,12 @@ export function DataTable({
       header: 'Image',
       cell: ({ row }) =>
         row.original.main_image_url ? (
-          <img
+          <Image
             src={row.original.main_image_url}
             alt={row.original.name}
-            style={{
-              width: 48,
-              height: 48,
-              objectFit: 'cover',
-              borderRadius: 6,
-            }}
+            width={48}
+            height={48}
+            className='object-cover rounded-md'
           />
         ) : (
           <div
@@ -672,11 +667,12 @@ export function DataTable({
                   <div className='flex flex-col md:flex-row gap-4 md:gap-8 items-start'>
                     {row.original.main_image_url && (
                       <div className='flex-shrink-0 mb-4 md:mb-0 w-full md:w-auto flex justify-center'>
-                        <img
+                        <Image
                           src={row.original.main_image_url}
                           alt={row.original.name}
+                          width={144}
+                          height={144}
                           className='w-32 h-32 md:w-36 md:h-36 object-cover rounded-lg border shadow-sm max-w-full'
-                          style={{ height: 'auto' }}
                         />
                       </div>
                     )}
@@ -800,33 +796,33 @@ export function DataTable({
                     <div className='mt-6'>
                       <div className='font-semibold mb-2'>Variants</div>
                       <div className='overflow-x-auto'>
-                        <table className='w-full text-xs border rounded'>
-                          <thead>
-                            <tr className='bg-gray-50 text-left'>
-                              <th className='p-2'>SKU</th>
-                              <th className='p-2'>Color</th>
-                              <th className='p-2'>Size</th>
-                              <th className='p-2'>Price</th>
-                              <th className='p-2'>Quantity</th>
-                            </tr>
-                          </thead>
-                          <tbody>
+                        <Table className='text-xs'>
+                          <TableHeader>
+                            <TableRow className='bg-gray-50'>
+                              <TableHead className='p-2'>SKU</TableHead>
+                              <TableHead className='p-2'>Color</TableHead>
+                              <TableHead className='p-2'>Size</TableHead>
+                              <TableHead className='p-2'>Price</TableHead>
+                              <TableHead className='p-2'>Quantity</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
                             {(row.original as ProductRow).variants!.map(
                               (v: any, idx: number) => (
-                                <tr
+                                <TableRow
                                   key={v.id || v.sku_variant || idx}
                                   className='border-t'
                                 >
-                                  <td className='p-2'>{v.sku_variant}</td>
-                                  <td className='p-2'>{v.color}</td>
-                                  <td className='p-2'>{v.size}</td>
-                                  <td className='p-2'>₦{v.price_variant}</td>
-                                  <td className='p-2'>{v.quantity_variant}</td>
-                                </tr>
+                                  <TableCell className='p-2'>{v.sku_variant}</TableCell>
+                                  <TableCell className='p-2'>{v.color}</TableCell>
+                                  <TableCell className='p-2'>{v.size}</TableCell>
+                                  <TableCell className='p-2'>₦{v.price_variant}</TableCell>
+                                  <TableCell className='p-2'>{v.quantity_variant}</TableCell>
+                                </TableRow>
                               )
                             )}
-                          </tbody>
-                        </table>
+                          </TableBody>
+                        </Table>
                       </div>
                     </div>
                   )}
@@ -1062,45 +1058,53 @@ export function DataTable({
               {table.getPageCount()}
             </div>
             <div className='ml-auto flex items-center gap-2 lg:ml-0'>
-              <Button
-                variant='outline'
-                className='hidden h-8 w-8 p-0 lg:flex'
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className='sr-only'>Go to first page</span>
-                <IconChevronsLeft />
-              </Button>
-              <Button
-                variant='outline'
-                className='size-8'
-                size='icon'
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <span className='sr-only'>Go to previous page</span>
-                <IconChevronLeft />
-              </Button>
-              <Button
-                variant='outline'
-                className='size-8'
-                size='icon'
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className='sr-only'>Go to next page</span>
-                <IconChevronRight />
-              </Button>
-              <Button
-                variant='outline'
-                className='hidden size-8 lg:flex'
-                size='icon'
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                <span className='sr-only'>Go to last page</span>
-                <IconChevronsRight />
-              </Button>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button
+                      variant='outline'
+                      className='hidden h-8 w-8 p-0 lg:flex'
+                      onClick={() => table.setPageIndex(0)}
+                      disabled={!table.getCanPreviousPage()}
+                    >
+                      <span className='sr-only'>Go to first page</span>
+                      <IconChevronsLeft />
+                    </Button>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        table.previousPage()
+                      }}
+                      className={!table.getCanPreviousPage() ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        table.nextPage()
+                      }}
+                      className={!table.getCanNextPage() ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <Button
+                      variant='outline'
+                      className='hidden size-8 lg:flex'
+                      size='icon'
+                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                      disabled={!table.getCanNextPage()}
+                    >
+                      <span className='sr-only'>Go to last page</span>
+                      <IconChevronsRight />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </div>
         </div>
@@ -1123,26 +1127,6 @@ export function DataTable({
     </Tabs>
   )
 }
-
-const chartData = [
-  { month: 'January', desktop: 186, mobile: 80 },
-  { month: 'February', desktop: 305, mobile: 200 },
-  { month: 'March', desktop: 237, mobile: 120 },
-  { month: 'April', desktop: 73, mobile: 190 },
-  { month: 'May', desktop: 209, mobile: 130 },
-  { month: 'June', desktop: 214, mobile: 140 },
-]
-
-const chartConfig = {
-  desktop: {
-    label: 'Desktop',
-    color: 'var(--primary)',
-  },
-  mobile: {
-    label: 'Mobile',
-    color: 'var(--primary)',
-  },
-} satisfies ChartConfig
 
 // DraggableRow for expandable product rows
 function DraggableRow({ row }: { row: Row<ProductRow> }) {
@@ -1180,3 +1164,13 @@ function DraggableRow({ row }: { row: Row<ProductRow> }) {
     </TableRow>
   )
 }
+
+// Export the optimized version
+export { DataTableOptimized } from './data-table/DataTableOptimized'
+
+// Export the memoized component
+export const MemoizedDataTable = React.memo(DataTable)
+
+// Export both for backwards compatibility
+export { DataTable }
+export default MemoizedDataTable

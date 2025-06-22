@@ -4,9 +4,27 @@ import React, { useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Image from 'next/image'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Button } from '../ui/button'
+import { Progress } from '../ui/progress'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
 import {
   Select,
   SelectTrigger,
@@ -112,6 +130,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [removedImageIds, setRemovedImageIds] = React.useState<string[]>([])
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: {
       sku: initialValues.sku || '',
       category: initialValues.category || '',
@@ -341,6 +361,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       let uploadedImageUrls: string[] = []
       const newImages = allImages.filter((img) => img.isNew && img.file)
       if (newImages.length > 0) {
+        if (!supabase) {
+          setServerError('Supabase client is not available.')
+          setLoading(false)
+          return
+        }
         try {
           uploadedImageUrls = await uploadProductImages(
             supabase,
@@ -373,6 +398,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         { ...values, images: imagesForSave },
         productId
       )
+      if (!supabase) {
+        setServerError('Supabase client is not available.')
+        setLoading(false)
+        return
+      }
       await saveProduct(
         supabase,
         {
@@ -421,27 +451,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       <div className='relative'>
         {(isLoading || loading) && (
           <div className='absolute inset-0 z-20 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-lg'>
-            <svg
-              className='animate-spin h-8 w-8 text-blue-500'
-              xmlns='http://www.w3.org/2000/svg'
-              fill='none'
-              viewBox='0 0 24 24'
-              aria-label='Loading spinner'
-            >
-              <circle
-                className='opacity-25'
-                cx='12'
-                cy='12'
-                r='10'
-                stroke='currentColor'
-                strokeWidth='4'
-              ></circle>
-              <path
-                className='opacity-75'
-                fill='currentColor'
-                d='M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z'
-              ></path>
-            </svg>
+            <Loader2 className='h-8 w-8 text-blue-500 animate-spin' />
           </div>
         )}
         <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
@@ -587,6 +597,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </FormItem>
               )}
             />
+            <FormField
+              name='model_name'
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Model Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
           <FormField
             name='description'
@@ -684,38 +707,38 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     aria-hidden='true'
                     tabIndex={-1}
                   />
-                  <img
+                  <Image
                     src={img.preview || img.url}
                     alt={img.alt || `Image ${idx + 1}`}
-                    className='max-h-32 rounded border mb-1'
+                    width={128}
+                    height={128}
+                    className='max-h-32 rounded border mb-1 object-cover'
                   />
-                  <button
+                  <Button
                     type='button'
                     onClick={() => handleRemoveImage(idx)}
+                    variant='ghost'
+                    size='icon'
                     className='absolute top-1 right-1 bg-white/80 rounded-full p-1 text-xs border border-gray-300 hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-400'
                     aria-label='Remove image'
                     tabIndex={0}
                   >
                     <X size={16} />
-                  </button>
-                  <input
+                  </Button>
+                  <Input
                     type='text'
                     value={img.alt || ''}
                     onChange={(e) => handleAltChange(idx, e.target.value)}
                     placeholder='Alt text'
-                    className='mt-1 w-full text-xs border rounded px-1 py-0.5'
+                    className='mt-1 w-full text-xs'
                     aria-label={`Alt text for image ${idx + 1}`}
                   />
                   {uploadProgress[idx] > 0 && uploadProgress[idx] < 100 && (
-                    <div className='w-full bg-gray-200 rounded h-1 mt-1'>
-                      <div
-                        className='bg-blue-500 h-1 rounded'
-                        style={{ width: `${uploadProgress[idx]}%` }}
-                        aria-valuenow={uploadProgress[idx]}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      />
-                    </div>
+                    <Progress 
+                      value={uploadProgress[idx]} 
+                      className='w-full mt-1'
+                      aria-label={`Upload progress: ${uploadProgress[idx]}%`}
+                    />
                   )}
                 </div>
               ))}
@@ -739,29 +762,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 No variants added.
               </div>
             ) : (
-              <table className='w-full text-sm border rounded mb-2'>
-                <thead>
-                  <tr className='bg-gray-50'>
-                    <th className='p-2'>SKU</th>
-                    <th className='p-2'>Color</th>
-                    <th className='p-2'>Size</th>
-                    <th className='p-2'>Price</th>
-                    <th className='p-2'>Quantity</th>
-                    <th className='p-2'></th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className='mb-2'>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Color</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {variants.map((variant, idx) => (
-                    <tr
-                      key={variant.id || variant.sku_variant || idx}
-                      className='border-t'
-                    >
-                      <td className='p-2'>{variant.sku_variant}</td>
-                      <td className='p-2'>{variant.color}</td>
-                      <td className='p-2'>{variant.size}</td>
-                      <td className='p-2'>{variant.price_variant ?? ''}</td>
-                      <td className='p-2'>{variant.quantity_variant ?? ''}</td>
-                      <td className='p-2 flex gap-2'>
+                    <TableRow key={variant.id || variant.sku_variant || idx}>
+                      <TableCell>{variant.sku_variant}</TableCell>
+                      <TableCell>{variant.color}</TableCell>
+                      <TableCell>{variant.size}</TableCell>
+                      <TableCell>{variant.price_variant ?? ''}</TableCell>
+                      <TableCell>{variant.quantity_variant ?? ''}</TableCell>
+                      <TableCell className='flex gap-2'>
                         <Button
                           type='button'
                           size='sm'
@@ -778,16 +798,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         >
                           Remove
                         </Button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
-            {/* Variant Dialog (simple inline for now) */}
-            {variantDialogOpen && (
-              <div className='border rounded p-4 bg-gray-50 mb-2'>
-                <div className='grid grid-cols-1 md:grid-cols-5 gap-2'>
+            
+            {/* Variant Dialog */}
+            <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
+              <DialogContent className='sm:max-w-[600px]'>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingVariant?.id ? 'Edit Variant' : 'Add Variant'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure the variant details below.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 py-4'>
                   <Input
                     placeholder='SKU Variant'
                     value={editingVariant?.sku_variant || ''}
@@ -850,19 +879,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     }
                   />
                 </div>
-                <div className='flex gap-2 mt-2'>
+                <DialogFooter>
                   <Button
                     type='button'
-                    size='sm'
-                    onClick={() =>
-                      editingVariant && handleSaveVariant(editingVariant)
-                    }
-                  >
-                    Save
-                  </Button>
-                  <Button
-                    type='button'
-                    size='sm'
                     variant='ghost'
                     onClick={() => {
                       setEditingVariant(null)
@@ -871,9 +890,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   >
                     Cancel
                   </Button>
-                </div>
-              </div>
-            )}
+                  <Button
+                    type='button'
+                    onClick={() =>
+                      editingVariant && handleSaveVariant(editingVariant)
+                    }
+                  >
+                    Save Variant
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           {serverError && (
             <div className='text-red-500 text-sm'>{serverError}</div>
